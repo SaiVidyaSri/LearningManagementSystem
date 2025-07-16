@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Dashboard - LearnHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="instructor-dashboard.html" class="logo">📚 LearnHub - Instructor</a>
+                <ul class="nav-links">
+                    <li><a href="instructor-dashboard.html">Dashboard</a></li>
+                    <li><a href="instructor-courses.html">My Courses</a></li>
+                    <li><a href="instructor-create-course.html">Create Course</a></li>
+                    <li><a href="instructor-students.html">Students</a></li>
+                    <li><a href="instructor-queries.html">Q&A</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Welcome Section -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">Welcome back, <span id="instructorName">Instructor</span>! 👨‍🏫</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Manage your courses, track student progress, and grow your teaching impact.</p>
+                </div>
+            </section>
+
+            <!-- Quick Stats -->
+            <section style="margin-bottom: 3rem;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Teaching Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalCourses">0</div>
+                        <div class="stat-label">Total Courses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalStudents">0</div>
+                        <div class="stat-label">Total Students</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="averageRating">0.0</div>
+                        <div class="stat-label">Average Rating</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pendingQueries">0</div>
+                        <div class="stat-label">Pending Queries</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Activity -->
+            <section style="margin-bottom: 3rem;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Recent Activity</h2>
+                <div class="card">
+                    <div id="recentActivity">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Course Performance -->
+            <section style="margin-bottom: 3rem;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Course Performance</h2>
+                <div id="coursePerformance">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Actions -->
+            <section>
+                <h2 style="margin-bottom: 2rem; color: #333;">Quick Actions</h2>
+                <div class="course-grid">
+                    <div class="card text-center">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">➕</div>
+                        <h3 style="margin-bottom: 1rem;">Create New Course</h3>
+                        <p style="color: #666; margin-bottom: 1.5rem;">Start building your next course and share your knowledge</p>
+                        <a href="instructor-create-course.html" class="btn btn-primary">Create Course</a>
+                    </div>
+                    <div class="card text-center">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                        <h3 style="margin-bottom: 1rem;">View Analytics</h3>
+                        <p style="color: #666; margin-bottom: 1.5rem;">Track student progress and course performance</p>
+                        <a href="instructor-analytics.html" class="btn btn-primary">View Analytics</a>
+                    </div>
+                    <div class="card text-center">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+                        <h3 style="margin-bottom: 1rem;">Answer Questions</h3>
+                        <p style="color: #666; margin-bottom: 1.5rem;">Help students by answering their queries</p>
+                        <a href="instructor-queries.html" class="btn btn-primary">View Q&A</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+
+        // Check authentication and instructor status
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            if (currentUser.role !== 'instructor') {
+                window.location.href = 'dashboard.html';
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
+            document.getElementById('instructorName').textContent = currentUser.fullName || currentUser.username;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Load instructor statistics
+        async function loadInstructorStats() {
+            if (!currentUser) return;
+
+            try {
+                // Get instructor's courses
+                const coursesResponse = await fetch(`/api/instructor/courses?instructorId=${currentUser.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const courses = await coursesResponse.json();
+
+                // Get instructor queries
+                const queriesResponse = await fetch('/api/instructor-queries', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const queries = await queriesResponse.json();
+
+                // Calculate stats
+                const totalCourses = courses.length;
+                const totalStudents = courses.reduce((sum, course) => sum + (course.totalEnrollments || 0), 0);
+                const averageRating = courses.length > 0 ? 
+                    (courses.reduce((sum, course) => sum + (course.averageRating || 0), 0) / courses.length).toFixed(1) : 0;
+                const pendingQueries = queries.filter(q => q.status === 'open').length;
+
+                // Update UI
+                animateNumber('totalCourses', totalCourses);
+                animateNumber('totalStudents', totalStudents);
+                animateNumber('pendingQueries', pendingQueries);
+                document.getElementById('averageRating').textContent = averageRating;
+
+                // Load course performance
+                displayCoursePerformance(courses);
+                
+                // Load recent activity
+                displayRecentActivity(queries);
+
+            } catch (error) {
+                console.error('Error loading instructor stats:', error);
+                showAlert('Unable to load dashboard data.');
+            }
+        }
+
+        // Display course performance
+        function displayCoursePerformance(courses) {
+            const container = document.getElementById('coursePerformance');
+            
+            if (courses.length === 0) {
+                container.innerHTML = `
+                    <div class="card text-center">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📚</div>
+                        <h3 style="margin-bottom: 1rem;">No Courses Yet</h3>
+                        <p style="color: #666; margin-bottom: 2rem;">Create your first course to start teaching</p>
+                        <a href="instructor-create-course.html" class="btn btn-primary">Create Course</a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="course-grid">
+                    ${courses.slice(0, 6).map(course => `
+                        <div class="card">
+                            <img src="${course.image}" alt="${course.name}" 
+                                 style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;"
+                                 onerror="this.src='data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 300 150\\"><rect width=\\"300\\" height=\\"150\\" fill=\\"%23f0f0f0\\"/><text x=\\"150\\" y=\\"75\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"16\\">Course Image</text></svg>'">
+                            <h4 style="margin-bottom: 0.5rem; color: #333;">${course.name}</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem; color: #666;">
+                                <div>👥 ${course.totalEnrollments || 0} students</div>
+                                <div>⭐ ${(course.averageRating || 0).toFixed(1)} rating</div>
+                                <div>📊 ${course.completionRate || 0}% completion</div>
+                                <div>📅 ${course.status}</div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="instructor-course-details.html?id=${course._id}" class="btn btn-outline" style="flex: 1;">View</a>
+                                <a href="instructor-edit-course.html?id=${course._id}" class="btn btn-primary" style="flex: 1;">Edit</a>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                ${courses.length > 6 ? `
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <a href="instructor-courses.html" class="btn btn-outline">View All Courses</a>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        // Display recent activity
+        function displayRecentActivity(queries) {
+            const container = document.getElementById('recentActivity');
+            
+            if (queries.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">💬</div>
+                        <p>No recent queries from students.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Show recent queries (last 5)
+            const recentQueries = queries.slice(0, 5);
+            
+            container.innerHTML = `
+                <div style="space-y: 1rem;">
+                    ${recentQueries.map(query => `
+                        <div style="display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid #e1e5e9;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: ${getQueryStatusColor(query.status)}; display: flex; align-items: center; justify-content: center; margin-right: 1rem; color: white;">
+                                ${getQueryStatusIcon(query.status)}
+                            </div>
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0; color: #333;">${query.title}</h4>
+                                <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.9rem;">
+                                    From ${query.student.fullName} • ${query.course.name}
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: #999; font-size: 0.9rem;">
+                                    ${new Date(query.createdAt).toLocaleDateString()}
+                                </div>
+                                <div style="margin-top: 0.25rem;">
+                                    <span style="padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.8rem; background: ${getQueryStatusColor(query.status)}; color: white;">
+                                        ${query.status}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <a href="instructor-queries.html" class="btn btn-outline">View All Queries</a>
+                </div>
+            `;
+        }
+
+        // Helper functions
+        function getQueryStatusColor(status) {
+            switch (status) {
+                case 'open': return '#dc3545';
+                case 'answered': return '#28a745';
+                case 'closed': return '#6c757d';
+                default: return '#667eea';
+            }
+        }
+
+        function getQueryStatusIcon(status) {
+            switch (status) {
+                case 'open': return '❓';
+                case 'answered': return '✅';
+                case 'closed': return '🔒';
+                default: return '💬';
+            }
+        }
+
+        // Animate number counting
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const duration = 1500;
+            const steps = 30;
+            const increment = targetNumber / steps;
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetNumber) {
+                    current = targetNumber;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current);
+            }, duration / steps);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadInstructorStats();
+            }
+        });
+    </script>
+</body>
+</html>
+

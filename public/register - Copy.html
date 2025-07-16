@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - LearnHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="index.html" class="logo">📚 LearnHub</a>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+                <div class="user-info">
+                    <a href="login.html" class="btn btn-outline">Login</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div style="max-width: 500px; margin: 2rem auto;">
+                <div class="card fade-in">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <h1 style="color: #333; margin-bottom: 0.5rem;">Join LearnHub</h1>
+                        <p style="color: #666;">Create your account and start learning today</p>
+                    </div>
+
+                    <div id="alertContainer"></div>
+
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <label for="username">Full Name</label>
+                            <input type="text" id="username" name="username" class="form-control" required>
+                            <small style="color: #666; font-size: 0.9rem;">This will be displayed on your profile</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" class="form-control" required>
+                            <small style="color: #666; font-size: 0.9rem;">We'll use this for login and notifications</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" class="form-control" required minlength="6">
+                            <small style="color: #666; font-size: 0.9rem;">Must be at least 6 characters long</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Password</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" required>
+                            <small id="passwordMatch" style="font-size: 0.9rem;"></small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="role">I want to register as *</label>
+                            <select id="role" class="form-control" required onchange="toggleInstructorFields()">
+                                <option value="">Select your role</option>
+                                <option value="student">Student - Learn from courses</option>
+                                <option value="instructor">Instructor - Teach and create courses</option>
+                            </select>
+                        </div>
+
+                        <!-- Instructor-specific fields -->
+                        <div id="instructorFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="experience">Years of Teaching Experience *</label>
+                                <input type="number" id="experience" class="form-control" min="0" placeholder="Enter years of experience">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="expertise">Area of Expertise *</label>
+                                <input type="text" id="expertise" class="form-control" placeholder="e.g., Web Development, Data Science, etc.">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bio">Brief Bio *</label>
+                                <textarea id="bio" class="form-control" rows="3" placeholder="Tell us about your background and why you want to teach..."></textarea>
+                            </div>
+                            
+                            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                                <p style="margin: 0; color: #856404; font-size: 0.9rem;">
+                                    <strong>📋 Instructor Application Process:</strong><br>
+                                    Your application will be reviewed by our admin team. You'll receive an email notification once approved.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="display: flex; align-items: flex-start; font-weight: normal;">
+                                <input type="checkbox" id="agreeTerms" style="margin-right: 0.5rem; margin-top: 0.25rem;" required>
+                                <span>I agree to the <a href="#" style="color: #667eea;">Terms of Service</a> and <a href="#" style="color: #667eea;">Privacy Policy</a></span>
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; font-weight: normal;">
+                                <input type="checkbox" id="newsletter" style="margin-right: 0.5rem;">
+                                <span>Subscribe to our newsletter for course updates and learning tips</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" id="registerBtn">
+                            <span id="registerBtnText">Create Account</span>
+                            <div id="registerSpinner" class="spinner" style="display: none; width: 20px; height: 20px; margin: 0 auto;"></div>
+                        </button>
+                    </form>
+
+                    <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e1e5e9;">
+                        <p style="color: #666;">Already have an account? <a href="login.html" style="color: #667eea; text-decoration: none; font-weight: 600;">Sign in here</a></p>
+                    </div>
+                </div>
+
+                <!-- Benefits Card -->
+                <div class="card" style="margin-top: 1rem; background: #f8f9ff; border: 1px solid #e1e5e9;">
+                    <h3 style="color: #667eea; margin-bottom: 1rem; text-align: center;">What You'll Get</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="color: #28a745; margin-right: 0.5rem; font-weight: bold;">✓</span>
+                            Access to all available courses
+                        </li>
+                        <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="color: #28a745; margin-right: 0.5rem; font-weight: bold;">✓</span>
+                            Progress tracking and analytics
+                        </li>
+                        <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="color: #28a745; margin-right: 0.5rem; font-weight: bold;">✓</span>
+                            Interactive quizzes and assessments
+                        </li>
+                        <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="color: #28a745; margin-right: 0.5rem; font-weight: bold;">✓</span>
+                            Certificates upon completion
+                        </li>
+                        <li style="display: flex; align-items: center;">
+                            <span style="color: #28a745; margin-right: 0.5rem; font-weight: bold;">✓</span>
+                            24/7 learning support
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: auto;">
+        <div class="container">
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Toggle instructor-specific fields
+        function toggleInstructorFields() {
+            const role = document.getElementById('role').value;
+            const instructorFields = document.getElementById('instructorFields');
+            
+            if (role === 'instructor') {
+                instructorFields.style.display = 'block';
+                // Make instructor fields required
+                document.getElementById('experience').required = true;
+                document.getElementById('expertise').required = true;
+                document.getElementById('bio').required = true;
+            } else {
+                instructorFields.style.display = 'none';
+                // Remove required attribute from instructor fields
+                document.getElementById('experience').required = false;
+                document.getElementById('expertise').required = false;
+                document.getElementById('bio').required = false;
+            }
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        // Password confirmation validation
+        function validatePasswordMatch() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const passwordMatch = document.getElementById('passwordMatch');
+            
+            if (confirmPassword === '') {
+                passwordMatch.textContent = '';
+                passwordMatch.style.color = '';
+                return true;
+            }
+            
+            if (password === confirmPassword) {
+                passwordMatch.textContent = '✓ Passwords match';
+                passwordMatch.style.color = '#28a745';
+                return true;
+            } else {
+                passwordMatch.textContent = '✗ Passwords do not match';
+                passwordMatch.style.color = '#dc3545';
+                return false;
+            }
+        }
+
+        // Add event listeners for password validation
+        document.getElementById('password').addEventListener('input', validatePasswordMatch);
+        document.getElementById('confirmPassword').addEventListener('input', validatePasswordMatch);
+
+        // Handle form submission
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Validate password match
+            if (!validatePasswordMatch()) {
+                showAlert('Passwords do not match. Please check and try again.');
+                return;
+            }
+            
+            const registerBtn = document.getElementById('registerBtn');
+            const registerBtnText = document.getElementById('registerBtnText');
+            const registerSpinner = document.getElementById('registerSpinner');
+            
+            // Show loading state
+            registerBtn.disabled = true;
+            registerBtnText.style.display = 'none';
+            registerSpinner.style.display = 'block';
+            
+            const formData = new FormData(e.target);
+            const registerData = {
+                username: formData.get('username'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                confirmPassword: formData.get('confirmPassword'),
+                role: document.getElementById('role').value
+            };
+
+            // Add instructor-specific data if role is instructor
+            if (registerData.role === 'instructor') {
+                registerData.instructorApplication = {
+                    experience: document.getElementById('experience').value,
+                    expertise: document.getElementById('expertise').value,
+                    bio: document.getElementById('bio').value,
+                    appliedAt: new Date().toISOString()
+                };
+            }
+            
+            try {
+                const response = await fetch('http://localhost:5000/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(registerData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Account created successfully! Redirecting to login...', 'success');
+                    
+                    // Redirect to login page after a short delay
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    showAlert(result.error || 'Registration failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showAlert('Network error. Please check your connection and try again.');
+            } finally {
+                // Reset button state
+                registerBtn.disabled = false;
+                registerBtnText.style.display = 'block';
+                registerSpinner.style.display = 'none';
+            }
+        });
+
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = localStorage.getItem('user');
+            if (user) {
+                window.location.href = 'dashboard.html';
+            }
+        });
+
+        // Form validation feedback
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = document.querySelectorAll('.form-control');
+            
+            inputs.forEach(input => {
+                input.addEventListener('blur', () => {
+                    if (input.checkValidity()) {
+                        input.style.borderColor = '#28a745';
+                    } else {
+                        input.style.borderColor = '#dc3545';
+                    }
+                });
+                
+                input.addEventListener('input', () => {
+                    if (input.style.borderColor) {
+                        input.style.borderColor = '#e1e5e9';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A - LearnHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .query-card {
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            background: white;
+            transition: box-shadow 0.3s ease;
+        }
+        .query-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .status-open { background: #dc3545; color: white; }
+        .status-answered { background: #28a745; color: white; }
+        .status-closed { background: #6c757d; color: white; }
+        .reply-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-left: 4px solid #667eea;
+        }
+        .instructor-reply {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="student-dashboard.html" class="logo">📚 LearnHub</a>
+                <ul class="nav-links">
+                    <li><a href="student-dashboard.html">Dashboard</a></li>
+                    <li><a href="courses.html">Browse Courses</a></li>
+                    <li><a href="my-courses.html">My Courses</a></li>
+                    <li><a href="progress.html">Progress</a></li>
+                    <li><a href="queries.html">Q&A</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">Questions & Answers 💬</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Get help from instructors and connect with the learning community.</p>
+                </div>
+            </section>
+
+            <!-- Action Bar -->
+            <section style="margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <select id="statusFilter" class="form-control" style="width: auto;" onchange="filterQueries()">
+                            <option value="">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="answered">Answered</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                        <select id="courseFilter" class="form-control" style="width: auto;" onchange="filterQueries()">
+                            <option value="">All Courses</option>
+                        </select>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search queries..." style="width: 250px;" onkeyup="filterQueries()">
+                    </div>
+                    <button onclick="openAskModal()" class="btn btn-primary">Ask Question</button>
+                </div>
+            </section>
+
+            <!-- Queries List -->
+            <section>
+                <div id="queriesList">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Ask Question Modal -->
+    <div id="askModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAskModal()">&times;</span>
+            <h2 style="margin-bottom: 2rem; color: #333;">Ask a Question</h2>
+            
+            <form id="askForm">
+                <div class="form-group">
+                    <label for="questionCourse">Course *</label>
+                    <select id="questionCourse" class="form-control" required>
+                        <option value="">Select a course</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="questionTitle">Question Title *</label>
+                    <input type="text" id="questionTitle" class="form-control" required placeholder="Brief title for your question">
+                </div>
+                
+                <div class="form-group">
+                    <label for="questionDescription">Question Details *</label>
+                    <textarea id="questionDescription" class="form-control" rows="5" required placeholder="Describe your question in detail..."></textarea>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="questionModule">Module (Optional)</label>
+                        <input type="number" id="questionModule" class="form-control" min="1" placeholder="Module number">
+                    </div>
+                    <div class="form-group">
+                        <label for="questionLesson">Lesson (Optional)</label>
+                        <input type="number" id="questionLesson" class="form-control" min="1" placeholder="Lesson number">
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                    <button type="button" onclick="closeAskModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitQuestionBtn">Submit Question</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Query Details Modal -->
+    <div id="queryModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeQueryModal()">&times;</span>
+            <div id="queryDetails">
+                <!-- Query details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let allQueries = [];
+        let enrolledCourses = [];
+
+        // Check authentication
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Load user's queries and enrolled courses
+        async function loadQueriesData() {
+            if (!currentUser) return;
+
+            try {
+                // Load enrolled courses for the dropdown
+                const progressResponse = await fetch(`/api/student-progress-details?username=${currentUser.username}`);
+                if (progressResponse.ok) {
+                    const progressData = await progressResponse.json();
+                    enrolledCourses = progressData;
+                    populateCourseDropdowns();
+                }
+
+                // Load queries (this would need to be implemented in the backend)
+                // For now, we'll show sample data
+                loadSampleQueries();
+
+            } catch (error) {
+                console.error('Error loading queries data:', error);
+                showAlert('Unable to load queries data.');
+            }
+        }
+
+        // Populate course dropdowns
+        function populateCourseDropdowns() {
+            const courseFilter = document.getElementById('courseFilter');
+            const questionCourse = document.getElementById('questionCourse');
+            
+            // Clear existing options (except first)
+            courseFilter.innerHTML = '<option value="">All Courses</option>';
+            questionCourse.innerHTML = '<option value="">Select a course</option>';
+            
+            enrolledCourses.forEach(course => {
+                const option1 = document.createElement('option');
+                option1.value = course.courseName;
+                option1.textContent = course.courseName;
+                courseFilter.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = course.courseName;
+                option2.textContent = course.courseName;
+                questionCourse.appendChild(option2);
+            });
+        }
+
+        // Load sample queries (replace with actual API call)
+        function loadSampleQueries() {
+            allQueries = [
+                {
+                    id: '1',
+                    title: 'How to implement authentication in Node.js?',
+                    description: 'I\'m having trouble understanding how to implement user authentication in my Node.js application. Can you provide some guidance on best practices?',
+                    course: 'Web Development Fundamentals',
+                    student: { fullName: currentUser.fullName || currentUser.username },
+                    status: 'answered',
+                    moduleIndex: 3,
+                    lessonIndex: 2,
+                    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+                    replies: [
+                        {
+                            author: { fullName: 'John Smith' },
+                            authorRole: 'instructor',
+                            content: 'Great question! For authentication in Node.js, I recommend using JWT tokens with bcrypt for password hashing. Here\'s a basic approach: 1) Hash passwords before storing, 2) Generate JWT on login, 3) Verify JWT on protected routes.',
+                            createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+                        }
+                    ]
+                },
+                {
+                    id: '2',
+                    title: 'Database design for e-commerce application',
+                    description: 'What would be the best database schema design for an e-commerce application with products, users, orders, and inventory management?',
+                    course: 'Database Design',
+                    student: { fullName: currentUser.fullName || currentUser.username },
+                    status: 'open',
+                    moduleIndex: 2,
+                    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+                    replies: []
+                },
+                {
+                    id: '3',
+                    title: 'React hooks vs class components',
+                    description: 'When should I use React hooks versus class components? What are the performance implications?',
+                    course: 'React Development',
+                    student: { fullName: currentUser.fullName || currentUser.username },
+                    status: 'answered',
+                    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+                    replies: [
+                        {
+                            author: { fullName: 'Sarah Johnson' },
+                            authorRole: 'instructor',
+                            content: 'React hooks are the modern way to write React components. They provide better code reusability and are easier to test. Class components are still supported but hooks are recommended for new projects.',
+                            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+                        },
+                        {
+                            author: { fullName: currentUser.fullName || currentUser.username },
+                            authorRole: 'student',
+                            content: 'Thank you for the explanation! This really helps clarify when to use each approach.',
+                            createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+                        }
+                    ]
+                }
+            ];
+
+            displayQueries(allQueries);
+        }
+
+        // Display queries
+        function displayQueries(queries) {
+            const container = document.getElementById('queriesList');
+            
+            if (queries.length === 0) {
+                container.innerHTML = `
+                    <div class="card text-center">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+                        <h3 style="margin-bottom: 1rem;">No Questions Yet</h3>
+                        <p style="color: #666; margin-bottom: 2rem;">Be the first to ask a question!</p>
+                        <button onclick="openAskModal()" class="btn btn-primary">Ask Your First Question</button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = queries.map(query => `
+                <div class="query-card" onclick="openQueryModal('${query.id}')">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 0.5rem 0; color: #333; cursor: pointer;">${query.title}</h4>
+                            <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; color: #666;">
+                                <span>📚 ${query.course}</span>
+                                ${query.moduleIndex ? `<span>📖 Module ${query.moduleIndex}</span>` : ''}
+                                ${query.lessonIndex ? `<span>📝 Lesson ${query.lessonIndex}</span>` : ''}
+                            </div>
+                        </div>
+                        <span class="status-badge status-${query.status}">${query.status}</span>
+                    </div>
+                    
+                    <p style="color: #666; margin-bottom: 1rem; line-height: 1.5;">
+                        ${query.description.length > 150 ? query.description.substring(0, 150) + '...' : query.description}
+                    </p>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #999;">
+                        <span>Asked by ${query.student.fullName}</span>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span>💬 ${query.replies.length} replies</span>
+                            <span>${query.createdAt.toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Filter queries
+        function filterQueries() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const courseFilter = document.getElementById('courseFilter').value;
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+
+            let filteredQueries = allQueries.filter(query => {
+                const matchesStatus = !statusFilter || query.status === statusFilter;
+                const matchesCourse = !courseFilter || query.course === courseFilter;
+                const matchesSearch = !searchInput || 
+                    query.title.toLowerCase().includes(searchInput) ||
+                    query.description.toLowerCase().includes(searchInput);
+
+                return matchesStatus && matchesCourse && matchesSearch;
+            });
+
+            displayQueries(filteredQueries);
+        }
+
+        // Open ask question modal
+        function openAskModal() {
+            document.getElementById('askModal').style.display = 'block';
+        }
+
+        // Close ask question modal
+        function closeAskModal() {
+            document.getElementById('askModal').style.display = 'none';
+            document.getElementById('askForm').reset();
+        }
+
+        // Open query details modal
+        function openQueryModal(queryId) {
+            const query = allQueries.find(q => q.id === queryId);
+            if (!query) return;
+
+            const modalContent = document.getElementById('queryDetails');
+            modalContent.innerHTML = `
+                <div style="margin-bottom: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                        <h2 style="margin: 0; color: #333; flex: 1;">${query.title}</h2>
+                        <span class="status-badge status-${query.status}">${query.status}</span>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; font-size: 0.9rem; color: #666;">
+                        <span>📚 ${query.course}</span>
+                        ${query.moduleIndex ? `<span>📖 Module ${query.moduleIndex}</span>` : ''}
+                        ${query.lessonIndex ? `<span>📝 Lesson ${query.lessonIndex}</span>` : ''}
+                        <span>📅 ${query.createdAt.toLocaleDateString()}</span>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                        <p style="margin: 0; line-height: 1.6; color: #333;">${query.description}</p>
+                    </div>
+                </div>
+
+                ${query.replies.length > 0 ? `
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 1rem; color: #333;">Replies (${query.replies.length})</h3>
+                        ${query.replies.map(reply => `
+                            <div class="reply-item ${reply.authorRole === 'instructor' ? 'instructor-reply' : ''}">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <strong style="color: #333;">
+                                        ${reply.author.fullName}
+                                        ${reply.authorRole === 'instructor' ? '👨‍🏫' : '👨‍🎓'}
+                                    </strong>
+                                    <span style="font-size: 0.9rem; color: #666;">
+                                        ${reply.createdAt.toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <p style="margin: 0; line-height: 1.5; color: #333;">${reply.content}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">💭</div>
+                        <p>No replies yet. The instructor will respond soon!</p>
+                    </div>
+                `}
+
+                ${query.status === 'open' ? `
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 1rem; text-align: center;">
+                        <p style="margin: 0; color: #856404;">
+                            <strong>⏳ Waiting for instructor response</strong><br>
+                            Your question has been sent to the course instructor. You'll be notified when they reply.
+                        </p>
+                    </div>
+                ` : ''}
+            `;
+
+            document.getElementById('queryModal').style.display = 'block';
+        }
+
+        // Close query details modal
+        function closeQueryModal() {
+            document.getElementById('queryModal').style.display = 'none';
+        }
+
+        // Submit question form
+        document.getElementById('askForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitQuestionBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            try {
+                const formData = {
+                    courseId: document.getElementById('questionCourse').value,
+                    title: document.getElementById('questionTitle').value,
+                    description: document.getElementById('questionDescription').value,
+                    moduleIndex: document.getElementById('questionModule').value || null,
+                    lessonIndex: document.getElementById('questionLesson').value || null
+                };
+
+                // This would be the actual API call
+                // const response = await fetch('/api/submit-query', {
+                //     method: 'POST',
+                //     headers: {
+                //         'Content-Type': 'application/json',
+                //         'Authorization': `Bearer ${localStorage.getItem('token')}`
+                //     },
+                //     body: JSON.stringify(formData)
+                // });
+
+                // For demo purposes, we'll simulate success
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                showAlert('Question submitted successfully! The instructor will respond soon.', 'success');
+                closeAskModal();
+                
+                // Add the new question to the list (simulation)
+                const newQuery = {
+                    id: Date.now().toString(),
+                    title: formData.title,
+                    description: formData.description,
+                    course: formData.courseId,
+                    student: { fullName: currentUser.fullName || currentUser.username },
+                    status: 'open',
+                    moduleIndex: formData.moduleIndex,
+                    lessonIndex: formData.lessonIndex,
+                    createdAt: new Date(),
+                    replies: []
+                };
+                
+                allQueries.unshift(newQuery);
+                displayQueries(allQueries);
+
+            } catch (error) {
+                console.error('Error submitting question:', error);
+                showAlert('Failed to submit question. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Question';
+            }
+        });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const askModal = document.getElementById('askModal');
+            const queryModal = document.getElementById('queryModal');
+            
+            if (event.target === askModal) {
+                closeAskModal();
+            }
+            if (event.target === queryModal) {
+                closeQueryModal();
+            }
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadQueriesData();
+            }
+        });
+    </script>
+</body>
+</html>
+

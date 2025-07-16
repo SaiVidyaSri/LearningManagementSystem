@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - LearnHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+        .course-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .course-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .achievement-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 0.25rem;
+        }
+        .notification-dot {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 12px;
+            height: 12px;
+            background: #dc3545;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="student-dashboard.html" class="logo">📚 LearnHub</a>
+                <ul class="nav-links">
+                    <li><a href="student-dashboard.html">Dashboard</a></li>
+                    <li><a href="courses.html">Browse Courses</a></li>
+                    <li><a href="my-courses.html">My Courses</a></li>
+                    <li><a href="progress.html">Progress</a></li>
+                    <li><a href="certificates.html">Certificates</a></li>
+                </ul>
+                <div class="user-info">
+                    <div style="position: relative;">
+                        <span id="userWelcome">Welcome!</span>
+                        <div id="notificationDot" class="notification-dot" style="display: none;"></div>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Welcome Section -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">Welcome back, <span id="studentName">Student</span>! 🎓</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Continue your learning journey and achieve your goals.</p>
+                </div>
+            </section>
+
+            <!-- Learning Statistics -->
+            <section style="margin-bottom: 3rem;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Your Learning Progress</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="enrolledCourses">0</div>
+                        <div class="stat-label">Enrolled Courses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="completedCourses">0</div>
+                        <div class="stat-label">Completed Courses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="certificatesEarned">0</div>
+                        <div class="stat-label">Certificates Earned</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalHours">0</div>
+                        <div class="stat-label">Hours Learned</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Continue Learning -->
+            <section style="margin-bottom: 3rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2 style="margin: 0; color: #333;">Continue Learning</h2>
+                    <a href="my-courses.html" class="btn btn-outline">View All</a>
+                </div>
+                <div id="continueLearning">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Achievements -->
+            <section style="margin-bottom: 3rem;" id="achievementsSection" style="display: none;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Recent Achievements 🏆</h2>
+                <div class="card">
+                    <div id="achievements">
+                        <!-- Achievements will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recommended Courses -->
+            <section style="margin-bottom: 3rem;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Recommended for You</h2>
+                <div id="recommendedCourses">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Activity -->
+            <section style="margin-bottom: 3rem;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Recent Activity</h2>
+                <div class="card">
+                    <div id="recentActivity">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Actions -->
+            <section>
+                <h2 style="margin-bottom: 2rem; color: #333;">Quick Actions</h2>
+                <div class="course-grid">
+                    <div class="card text-center course-card">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+                        <h3 style="margin-bottom: 1rem;">Browse Courses</h3>
+                        <p style="color: #666; margin-bottom: 1.5rem;">Discover new courses and expand your skills</p>
+                        <a href="courses.html" class="btn btn-primary">Browse Now</a>
+                    </div>
+                    <div class="card text-center course-card">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                        <h3 style="margin-bottom: 1rem;">Track Progress</h3>
+                        <p style="color: #666; margin-bottom: 1.5rem;">Monitor your learning progress and achievements</p>
+                        <a href="progress.html" class="btn btn-primary">View Progress</a>
+                    </div>
+                    <div class="card text-center course-card">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+                        <h3 style="margin-bottom: 1rem;">Ask Questions</h3>
+                        <p style="color: #666; margin-bottom: 1.5rem;">Get help from instructors and community</p>
+                        <a href="queries.html" class="btn btn-primary">Ask Question</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+
+        // Check authentication and student status
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            if (currentUser.role !== 'student') {
+                // Redirect to appropriate dashboard based on role
+                if (currentUser.role === 'instructor') {
+                    window.location.href = 'instructor-dashboard.html';
+                } else if (currentUser.role === 'admin') {
+                    window.location.href = 'admin-dashboard.html';
+                }
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
+            document.getElementById('studentName').textContent = currentUser.fullName || currentUser.username;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Load student dashboard data
+        async function loadStudentData() {
+            if (!currentUser) return;
+
+            try {
+                // Load student progress
+                const progressResponse = await fetch(`/api/student-progress-details?username=${currentUser.username}`);
+                
+                if (!progressResponse.ok) {
+                    throw new Error('Failed to fetch progress data');
+                }
+
+                const progressData = await progressResponse.json();
+
+                // Update statistics
+                const enrolledCount = progressData.length;
+                const completedCount = progressData.filter(course => course.isCompleted).length;
+                const certificatesCount = progressData.filter(course => course.certificateIssued).length;
+                const totalHours = progressData.reduce((sum, course) => sum + (course.overallProgress * 0.1), 0);
+
+                animateNumber('enrolledCourses', enrolledCount);
+                animateNumber('completedCourses', completedCount);
+                animateNumber('certificatesEarned', certificatesCount);
+                animateNumber('totalHours', Math.round(totalHours));
+
+                // Load continue learning section
+                loadContinueLearning(progressData);
+
+                // Load achievements
+                loadAchievements(progressData);
+
+                // Load recent activity
+                loadRecentActivity(progressData);
+
+                // Load recommended courses
+                loadRecommendedCourses();
+
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                showAlert('Unable to load dashboard data.');
+            }
+        }
+
+        // Load continue learning section
+        function loadContinueLearning(progressData) {
+            const container = document.getElementById('continueLearning');
+            
+            // Filter courses that are in progress
+            const inProgressCourses = progressData.filter(course => 
+                !course.isCompleted && course.overallProgress > 0
+            );
+
+            if (inProgressCourses.length === 0) {
+                container.innerHTML = `
+                    <div class="card text-center">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
+                        <h3 style="margin-bottom: 1rem;">Start Your Learning Journey</h3>
+                        <p style="color: #666; margin-bottom: 2rem;">Enroll in a course to begin learning</p>
+                        <a href="courses.html" class="btn btn-primary">Browse Courses</a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="course-grid">
+                    ${inProgressCourses.slice(0, 3).map(course => `
+                        <div class="card course-card">
+                            <img src="${course.courseImage}" alt="${course.courseName}" 
+                                 style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;"
+                                 onerror="this.src='data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 300 150\\"><rect width=\\"300\\" height=\\"150\\" fill=\\"%23f0f0f0\\"/><text x=\\"150\\" y=\\"75\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"16\\">Course Image</text></svg>'">
+                            <h4 style="margin-bottom: 0.5rem; color: #333;">${course.courseName}</h4>
+                            <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">by ${course.instructorName}</p>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 0.9rem; color: #666;">Progress</span>
+                                    <span style="font-size: 0.9rem; font-weight: bold; color: #667eea;">${course.overallProgress}%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${course.overallProgress}%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="course-learn.html?course=${encodeURIComponent(course.courseName)}" class="btn btn-primary" style="flex: 1;">Continue</a>
+                                <a href="course-details.html?course=${encodeURIComponent(course.courseName)}" class="btn btn-outline" style="flex: 1;">Details</a>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Load achievements
+        function loadAchievements(progressData) {
+            const achievements = [];
+            
+            // Generate achievements based on progress
+            const completedCourses = progressData.filter(course => course.isCompleted);
+            const certificatesEarned = progressData.filter(course => course.certificateIssued);
+            
+            if (completedCourses.length >= 1) {
+                achievements.push('🎓 First Course Completed');
+            }
+            if (completedCourses.length >= 5) {
+                achievements.push('🏆 Learning Enthusiast');
+            }
+            if (certificatesEarned.length >= 1) {
+                achievements.push('📜 Certificate Earner');
+            }
+            if (progressData.some(course => course.finalExamScore && course.finalExamScore.percentage >= 90)) {
+                achievements.push('⭐ High Achiever');
+            }
+
+            if (achievements.length > 0) {
+                document.getElementById('achievementsSection').style.display = 'block';
+                document.getElementById('achievements').innerHTML = `
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        ${achievements.map(achievement => `
+                            <span class="achievement-badge">${achievement}</span>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        // Load recent activity
+        function loadRecentActivity(progressData) {
+            const container = document.getElementById('recentActivity');
+            
+            // Generate recent activities
+            const activities = [];
+            
+            progressData.forEach(course => {
+                if (course.isCompleted) {
+                    activities.push({
+                        type: 'completion',
+                        message: `Completed "${course.courseName}"`,
+                        date: new Date(course.completedAt),
+                        icon: '🎉'
+                    });
+                }
+                
+                if (course.certificateIssued) {
+                    activities.push({
+                        type: 'certificate',
+                        message: `Earned certificate for "${course.courseName}"`,
+                        date: new Date(course.certificateIssuedAt),
+                        icon: '📜'
+                    });
+                }
+                
+                if (course.quizScores && course.quizScores.length > 0) {
+                    const latestQuiz = course.quizScores[course.quizScores.length - 1];
+                    activities.push({
+                        type: 'quiz',
+                        message: `Scored ${latestQuiz.percentage}% on quiz in "${course.courseName}"`,
+                        date: new Date(latestQuiz.submittedAt),
+                        icon: latestQuiz.percentage >= 80 ? '🌟' : '📝'
+                    });
+                }
+            });
+
+            // Sort by date (most recent first)
+            activities.sort((a, b) => b.date - a.date);
+
+            if (activities.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">📚</div>
+                        <p>Start learning to see your activity here!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="space-y: 1rem;">
+                    ${activities.slice(0, 5).map(activity => `
+                        <div style="display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid #e1e5e9;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: #667eea; display: flex; align-items: center; justify-content: center; margin-right: 1rem; color: white;">
+                                ${activity.icon}
+                            </div>
+                            <div style="flex: 1;">
+                                <p style="margin: 0; color: #333;">${activity.message}</p>
+                            </div>
+                            <div style="color: #999; font-size: 0.9rem;">
+                                ${activity.date.toLocaleDateString()}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Load recommended courses
+        async function loadRecommendedCourses() {
+            try {
+                const response = await fetch('/api/courses?limit=3');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch courses');
+                }
+
+                const courses = await response.json();
+                const container = document.getElementById('recommendedCourses');
+
+                if (courses.length === 0) {
+                    container.innerHTML = `
+                        <div class="card text-center">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📚</div>
+                            <p style="color: #666;">No courses available at the moment.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="course-grid">
+                        ${courses.slice(0, 3).map(course => `
+                            <div class="card course-card">
+                                <img src="${course.image}" alt="${course.name}" 
+                                     style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;"
+                                     onerror="this.src='data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 300 150\\"><rect width=\\"300\\" height=\\"150\\" fill=\\"%23f0f0f0\\"/><text x=\\"150\\" y=\\"75\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"16\\">Course Image</text></svg>'">
+                                <h4 style="margin-bottom: 0.5rem; color: #333;">${course.name}</h4>
+                                <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">by ${course.instructorName}</p>
+                                
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; font-size: 0.9rem; color: #666;">
+                                    <span>⭐ ${(course.averageRating || 0).toFixed(1)}</span>
+                                    <span>👥 ${course.totalEnrollments || 0}</span>
+                                    <span>🕒 ${course.estimatedHours}h</span>
+                                </div>
+                                
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <a href="course-details.html?course=${encodeURIComponent(course.name)}" class="btn btn-outline" style="flex: 1;">View</a>
+                                    <button onclick="enrollInCourse('${course.name}')" class="btn btn-primary" style="flex: 1;">Enroll</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Error loading recommended courses:', error);
+                document.getElementById('recommendedCourses').innerHTML = `
+                    <div class="card text-center">
+                        <p style="color: #dc3545;">Error loading recommended courses.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Enroll in course
+        async function enrollInCourse(courseName) {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch('/api/enroll', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        courseName: courseName,
+                        username: currentUser.username
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Successfully enrolled in the course!', 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    showAlert(result.error || 'Failed to enroll in course');
+                }
+
+            } catch (error) {
+                console.error('Error enrolling in course:', error);
+                showAlert('Network error. Please try again.');
+            }
+        }
+
+        // Animate number counting
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const duration = 1500;
+            const steps = 30;
+            const increment = targetNumber / steps;
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetNumber) {
+                    current = targetNumber;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current);
+            }, duration / steps);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadStudentData();
+            }
+        });
+    </script>
+</body>
+</html>
+

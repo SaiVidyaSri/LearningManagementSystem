@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Pending - LearnHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .pending-container {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .pending-card {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 3rem;
+        }
+        .status-icon {
+            font-size: 4rem;
+            margin-bottom: 2rem;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .timeline {
+            text-align: left;
+            margin: 2rem 0;
+        }
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        .timeline-item.completed {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .timeline-item.current {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .timeline-icon {
+            margin-right: 1rem;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="index.html" class="logo">📚 LearnHub</a>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="pending-container">
+            <div class="pending-card">
+                <div class="status-icon">⏳</div>
+                
+                <h1 style="color: #333; margin-bottom: 1rem;">Application Under Review</h1>
+                
+                <p style="color: #666; font-size: 1.1rem; margin-bottom: 2rem;">
+                    Thank you for applying to become an instructor on LearnHub! 
+                    Your application is currently being reviewed by our admin team.
+                </p>
+
+                <div class="timeline">
+                    <h3 style="color: #333; margin-bottom: 1rem;">Application Process</h3>
+                    
+                    <div class="timeline-item completed">
+                        <div class="timeline-icon">✅</div>
+                        <div>
+                            <h4 style="margin: 0; color: #333;">Application Submitted</h4>
+                            <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.9rem;">
+                                Your instructor application has been successfully submitted.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item current">
+                        <div class="timeline-icon">🔍</div>
+                        <div>
+                            <h4 style="margin: 0; color: #333;">Under Review</h4>
+                            <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.9rem;">
+                                Our admin team is reviewing your qualifications and experience.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-icon">📧</div>
+                        <div>
+                            <h4 style="margin: 0; color: #333;">Decision Notification</h4>
+                            <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.9rem;">
+                                You'll receive an email notification with the decision.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-icon">🎓</div>
+                        <div>
+                            <h4 style="margin: 0; color: #333;">Start Teaching</h4>
+                            <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.9rem;">
+                                Once approved, you can start creating and publishing courses.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; padding: 1.5rem; margin: 2rem 0;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #1565c0;">📋 What Happens Next?</h4>
+                    <ul style="text-align: left; margin: 0; padding-left: 1.5rem; color: #1565c0;">
+                        <li>Our team will review your experience and expertise</li>
+                        <li>We may contact you for additional information</li>
+                        <li>You'll receive an email notification within 2-3 business days</li>
+                        <li>If approved, you'll gain access to the instructor dashboard</li>
+                    </ul>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="courses.html" class="btn btn-outline">Browse Courses</a>
+                    <a href="profile.html" class="btn btn-primary">View Profile</a>
+                </div>
+
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e1e5e9;">
+                    <p style="color: #666; font-size: 0.9rem; margin: 0;">
+                        Questions about your application? 
+                        <a href="contact.html" style="color: #667eea;">Contact our support team</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center;">
+        <div class="container">
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+
+        // Check authentication
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            // Check if user is actually an instructor applicant
+            if (currentUser.role !== 'instructor') {
+                // Redirect to appropriate dashboard
+                if (currentUser.role === 'admin') {
+                    window.location.href = 'admin-dashboard.html';
+                } else {
+                    window.location.href = 'student-dashboard.html';
+                }
+                return null;
+            }
+            
+            // Check if instructor is already approved
+            if (currentUser.instructorStatus === 'approved') {
+                window.location.href = 'instructor-dashboard.html';
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Check for status updates periodically
+        async function checkApplicationStatus() {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(`/api/user-status?username=${currentUser.username}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    
+                    // Update local storage with latest user data
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    
+                    // If status changed to approved, redirect to instructor dashboard
+                    if (userData.instructorStatus === 'approved') {
+                        showAlert('Congratulations! Your instructor application has been approved!', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'instructor-dashboard.html';
+                        }, 2000);
+                    } else if (userData.instructorStatus === 'rejected') {
+                        showAlert('Your instructor application was not approved. Please contact support for more information.', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking application status:', error);
+            }
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : 'alert-info'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                // Check application status every 30 seconds
+                setInterval(checkApplicationStatus, 30000);
+                
+                // Check once immediately
+                checkApplicationStatus();
+            }
+        });
+    </script>
+</body>
+</html>
+

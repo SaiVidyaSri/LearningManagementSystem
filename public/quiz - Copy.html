@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz - LearnHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="dashboard.html" class="logo">📚 LearnHub</a>
+                <ul class="nav-links">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="my-courses.html">My Courses</a></li>
+                    <li><a href="progress.html">Progress</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="quiz-container">
+                <!-- Quiz Header -->
+                <section id="quizHeader" style="margin-bottom: 2rem;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </section>
+
+                <!-- Quiz Content -->
+                <section id="quizContent">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </section>
+
+                <!-- Quiz Results -->
+                <section id="quizResults" style="display: none;">
+                    <div class="card text-center">
+                        <h2 style="margin-bottom: 2rem; color: #333;">Quiz Results</h2>
+                        <div id="resultsContent"></div>
+                    </div>
+                </section>
+
+                <!-- Already Attempted Message -->
+                <section id="alreadyAttempted" style="display: none;">
+                    <div class="card text-center">
+                        <div style="color: #ffc107; font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                        <h2 style="margin-bottom: 1rem; color: #333;">Quiz Already Attempted</h2>
+                        <div id="previousResults"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let courseName = null;
+        let quizType = null;
+        let moduleIndex = null;
+        let quizData = null;
+        let userAnswers = {};
+        let currentQuestionIndex = 0;
+        let timeRemaining = 0;
+        let timerInterval = null;
+
+        // Get quiz parameters from URL
+        function getQuizParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            courseName = urlParams.get('course');
+            quizType = urlParams.get('type'); // 'module' or 'final'
+            moduleIndex = urlParams.get('module');
+            
+            if (!courseName || !quizType) {
+                window.location.href = 'my-courses.html';
+                return false;
+            }
+            
+            if (quizType === 'module' && moduleIndex === null) {
+                window.location.href = 'my-courses.html';
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Check authentication
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Check if quiz was already attempted
+        async function checkQuizAttempt() {
+            try {
+                const params = new URLSearchParams({
+                    username: currentUser.username,
+                    courseName: courseName,
+                    quizType: quizType
+                });
+                
+                if (quizType === 'module') {
+                    params.append('moduleIndex', moduleIndex);
+                }
+                
+                const response = await fetch(`/api/check-attempt?${params}`);
+                const result = await response.json();
+                
+                if (result.hasAttempted) {
+                    showAlreadyAttempted(result.attemptData);
+                    return true;
+                }
+                
+                return false;
+            } catch (error) {
+                console.error('Error checking quiz attempt:', error);
+                return false;
+            }
+        }
+
+        // Load quiz data
+        async function loadQuizData() {
+            try {
+                const response = await fetch(`/api/courses/${encodeURIComponent(courseName)}`);
+                const courseData = await response.json();
+                
+                if (quizType === 'final') {
+                    quizData = courseData.finalExam;
+                } else {
+                    quizData = courseData.quizzes[parseInt(moduleIndex)];
+                }
+                
+                if (!quizData || !quizData.qanda || quizData.qanda.length === 0) {
+                    throw new Error('No quiz questions found');
+                }
+                
+                displayQuizHeader();
+                displayQuiz();
+                
+            } catch (error) {
+                console.error('Error loading quiz data:', error);
+                document.getElementById('quizContent').innerHTML = 
+                    '<div class="card text-center"><h2 style="color: #dc3545;">Quiz Not Available</h2><p>Unable to load quiz questions.</p><a href="my-courses.html" class="btn btn-primary">Back to Courses</a></div>';
+            }
+        }
+
+        // Display quiz header
+        function displayQuizHeader() {
+            const quizTitle = quizType === 'final' ? 'Final Exam' : `Module ${parseInt(moduleIndex) + 1} Quiz`;
+            const totalQuestions = quizData.qanda.length;
+            
+            document.getElementById('quizHeader').innerHTML = `
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h1 style="margin-bottom: 0.5rem;">${quizTitle}</h1>
+                            <p style="opacity: 0.9; margin: 0;">${courseName}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
+                                <span id="currentQuestion">1</span> / ${totalQuestions}
+                            </div>
+                            <div style="font-size: 1rem; opacity: 0.9;">
+                                Time: <span id="timer">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Start timer (30 minutes for final exam, 15 minutes for module quiz)
+            timeRemaining = quizType === 'final' ? 30 * 60 : 15 * 60;
+            startTimer();
+        }
+
+        // Start timer
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    submitQuiz(true); // Auto-submit when time runs out
+                }
+            }, 1000);
+        }
+
+        // Update timer display
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            const timerElement = document.getElementById('timer');
+            
+            if (timerElement) {
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Change color when time is running low
+                if (timeRemaining <= 300) { // 5 minutes
+                    timerElement.style.color = '#dc3545';
+                } else if (timeRemaining <= 600) { // 10 minutes
+                    timerElement.style.color = '#ffc107';
+                }
+            }
+        }
+
+        // Display quiz
+        function displayQuiz() {
+            const totalQuestions = quizData.qanda.length;
+            
+            document.getElementById('quizContent').innerHTML = `
+                <div class="card">
+                    <form id="quizForm">
+                        ${quizData.qanda.map((question, index) => `
+                            <div class="question-card" id="question-${index}" style="display: ${index === 0 ? 'block' : 'none'};">
+                                <div class="question-number">Question ${index + 1} of ${totalQuestions}</div>
+                                <div class="question-text">${question.question}</div>
+                                <ul class="options-list">
+                                    ${Object.entries(question.options).map(([key, value]) => `
+                                        <li class="option-item">
+                                            <label class="option-label" onclick="selectOption(${index}, '${key}')">
+                                                <input type="radio" name="question-${index}" value="${key}" class="option-radio">
+                                                <span>${key.toUpperCase()}) ${value}</span>
+                                            </label>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        `).join('')}
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e1e5e9;">
+                            <button type="button" id="prevBtn" onclick="previousQuestion()" class="btn btn-secondary" style="display: none;">Previous</button>
+                            <div style="flex: 1; text-align: center;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                                    ${quizData.qanda.map((_, index) => `
+                                        <button type="button" class="question-nav-btn" data-question="${index}" onclick="goToQuestion(${index})"
+                                                style="width: 40px; height: 40px; border: 2px solid #e1e5e9; background: white; border-radius: 50%; cursor: pointer; font-weight: bold;">
+                                            ${index + 1}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <button type="button" id="nextBtn" onclick="nextQuestion()" class="btn btn-primary">Next</button>
+                            <button type="button" id="submitBtn" onclick="submitQuiz()" class="btn btn-success" style="display: none;">Submit Quiz</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            updateNavigationButtons();
+        }
+
+        // Select option
+        function selectOption(questionIndex, optionKey) {
+            userAnswers[questionIndex] = optionKey;
+            
+            // Update visual feedback
+            const questionCard = document.getElementById(`question-${questionIndex}`);
+            const labels = questionCard.querySelectorAll('.option-label');
+            labels.forEach(label => label.classList.remove('selected'));
+            
+            const selectedLabel = questionCard.querySelector(`input[value="${optionKey}"]`).closest('.option-label');
+            selectedLabel.classList.add('selected');
+            
+            // Update question navigation button
+            const navBtn = document.querySelector(`[data-question="${questionIndex}"]`);
+            navBtn.style.background = '#667eea';
+            navBtn.style.color = 'white';
+            navBtn.style.borderColor = '#667eea';
+            
+            updateNavigationButtons();
+        }
+
+        // Navigate to specific question
+        function goToQuestion(questionIndex) {
+            // Hide current question
+            document.getElementById(`question-${currentQuestionIndex}`).style.display = 'none';
+            
+            // Show target question
+            currentQuestionIndex = questionIndex;
+            document.getElementById(`question-${currentQuestionIndex}`).style.display = 'block';
+            
+            // Update current question display
+            document.getElementById('currentQuestion').textContent = currentQuestionIndex + 1;
+            
+            updateNavigationButtons();
+        }
+
+        // Previous question
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                goToQuestion(currentQuestionIndex - 1);
+            }
+        }
+
+        // Next question
+        function nextQuestion() {
+            if (currentQuestionIndex < quizData.qanda.length - 1) {
+                goToQuestion(currentQuestionIndex + 1);
+            }
+        }
+
+        // Update navigation buttons
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Show/hide previous button
+            prevBtn.style.display = currentQuestionIndex > 0 ? 'block' : 'none';
+            
+            // Show/hide next/submit buttons
+            if (currentQuestionIndex === quizData.qanda.length - 1) {
+                nextBtn.style.display = 'none';
+                submitBtn.style.display = 'block';
+            } else {
+                nextBtn.style.display = 'block';
+                submitBtn.style.display = 'none';
+            }
+            
+            // Enable submit button only if all questions are answered
+            const answeredCount = Object.keys(userAnswers).length;
+            submitBtn.disabled = answeredCount < quizData.qanda.length;
+            
+            if (answeredCount === quizData.qanda.length) {
+                submitBtn.textContent = 'Submit Quiz';
+                submitBtn.style.background = '#28a745';
+            } else {
+                submitBtn.textContent = `Submit (${answeredCount}/${quizData.qanda.length})`;
+                submitBtn.style.background = '#6c757d';
+            }
+        }
+
+        // Submit quiz
+        async function submitQuiz(autoSubmit = false) {
+            if (!autoSubmit) {
+                const answeredCount = Object.keys(userAnswers).length;
+                if (answeredCount < quizData.qanda.length) {
+                    const unanswered = quizData.qanda.length - answeredCount;
+                    if (!confirm(`You have ${unanswered} unanswered question(s). Are you sure you want to submit?`)) {
+                        return;
+                    }
+                }
+            }
+            
+            // Stop timer
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            
+            // Prepare answers array
+            const answers = [];
+            for (let i = 0; i < quizData.qanda.length; i++) {
+                answers[i] = userAnswers[i] || null;
+            }
+            
+            try {
+                const submitData = {
+                    username: currentUser.username,
+                    courseName: courseName,
+                    quizType: quizType,
+                    answers: answers
+                };
+                
+                if (quizType === 'module') {
+                    submitData.moduleIndex = parseInt(moduleIndex);
+                }
+                
+                const response = await fetch('/api/submit-quiz', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(submitData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showQuizResults(result);
+                } else {
+                    alert(result.error || 'Failed to submit quiz');
+                }
+                
+            } catch (error) {
+                console.error('Error submitting quiz:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+
+        // Show quiz results
+        function showQuizResults(result) {
+            document.getElementById('quizContent').style.display = 'none';
+            document.getElementById('quizResults').style.display = 'block';
+            
+            const percentage = result.percentage;
+            const passed = percentage >= 60;
+            
+            document.getElementById('resultsContent').innerHTML = `
+                <div style="color: ${passed ? '#28a745' : '#dc3545'}; font-size: 4rem; margin-bottom: 1rem;">
+                    ${passed ? '🎉' : '😔'}
+                </div>
+                <h3 style="margin-bottom: 1rem; color: ${passed ? '#28a745' : '#dc3545'};">
+                    ${passed ? 'Congratulations!' : 'Keep Learning!'}
+                </h3>
+                <div style="font-size: 2rem; font-weight: bold; margin-bottom: 1rem; color: ${passed ? '#28a745' : '#dc3545'};">
+                    ${result.score}/${result.totalQuestions} (${percentage}%)
+                </div>
+                <p style="color: #666; margin-bottom: 2rem;">
+                    ${passed ? 'Great job! You passed the quiz.' : 'Don\'t worry, keep studying and try again later.'}
+                </p>
+                
+                <div style="margin: 2rem 0;">
+                    <h4 style="margin-bottom: 1rem; color: #333;">Question Review</h4>
+                    <div style="max-height: 400px; overflow-y: auto; text-align: left;">
+                        ${result.questionResults.map((q, index) => `
+                            <div style="padding: 1rem; margin-bottom: 1rem; border: 1px solid #e1e5e9; border-radius: 8px; background: ${q.isCorrect ? '#d4edda' : '#f8d7da'};">
+                                <div style="font-weight: bold; margin-bottom: 0.5rem;">Question ${index + 1}</div>
+                                <div style="margin-bottom: 0.5rem;">${q.question}</div>
+                                <div style="font-size: 0.9rem;">
+                                    <div style="color: ${q.isCorrect ? '#155724' : '#721c24'};">
+                                        Your answer: ${q.userAnswer ? q.userAnswer.toUpperCase() + ') ' + q.options[q.userAnswer] : 'Not answered'}
+                                    </div>
+                                    ${!q.isCorrect ? `
+                                        <div style="color: #155724;">
+                                            Correct answer: ${q.correctAnswer.toUpperCase()}) ${q.options[q.correctAnswer]}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="course-details.html?course=${encodeURIComponent(courseName)}" class="btn btn-primary">Back to Course</a>
+                    <a href="progress.html?course=${encodeURIComponent(courseName)}" class="btn btn-outline">View Progress</a>
+                </div>
+            `;
+        }
+
+        // Show already attempted message
+        function showAlreadyAttempted(attemptData) {
+            document.getElementById('quizContent').style.display = 'none';
+            document.getElementById('alreadyAttempted').style.display = 'block';
+            
+            const percentage = attemptData.percentage;
+            const passed = percentage >= 60;
+            
+            document.getElementById('previousResults').innerHTML = `
+                <p style="color: #666; margin-bottom: 2rem;">
+                    You have already completed this quiz. Here are your previous results:
+                </p>
+                
+                <div style="font-size: 2rem; font-weight: bold; margin-bottom: 1rem; color: ${passed ? '#28a745' : '#dc3545'};">
+                    ${attemptData.score}/${attemptData.totalQuestions} (${percentage}%)
+                </div>
+                
+                <p style="color: #666; margin-bottom: 2rem;">
+                    Submitted on: ${new Date(attemptData.submittedAt).toLocaleString()}
+                </p>
+                
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="course-details.html?course=${encodeURIComponent(courseName)}" class="btn btn-primary">Back to Course</a>
+                    <a href="progress.html?course=${encodeURIComponent(courseName)}" class="btn btn-outline">View Progress</a>
+                </div>
+            `;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!checkAuth() || !getQuizParams()) {
+                return;
+            }
+            
+            // Check if quiz was already attempted
+            const alreadyAttempted = await checkQuizAttempt();
+            if (!alreadyAttempted) {
+                await loadQuizData();
+            }
+        });
+
+        // Prevent page refresh during quiz
+        window.addEventListener('beforeunload', (e) => {
+            if (timerInterval && Object.keys(userAnswers).length > 0) {
+                e.preventDefault();
+                e.returnValue = 'You have an ongoing quiz. Are you sure you want to leave?';
+            }
+        });
+    </script>
+</body>
+</html>
+

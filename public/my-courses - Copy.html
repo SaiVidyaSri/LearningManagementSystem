@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Courses - LearnHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="dashboard.html" class="logo">📚 LearnHub</a>
+                <ul class="nav-links">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="my-courses.html">My Courses</a></li>
+                    <li><a href="progress.html">Progress</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">My Learning Journey 📚</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Track your progress and continue learning at your own pace.</p>
+                </div>
+            </section>
+
+            <!-- Learning Statistics -->
+            <section style="margin-bottom: 3rem;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Learning Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="enrolledCount">0</div>
+                        <div class="stat-label">Enrolled Courses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="completedCount">0</div>
+                        <div class="stat-label">Completed Courses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="averageProgress">0%</div>
+                        <div class="stat-label">Average Progress</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalQuizzes">0</div>
+                        <div class="stat-label">Quizzes Completed</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filter and Sort -->
+            <section style="margin-bottom: 2rem;">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <label for="statusFilter" style="font-weight: 600;">Filter by Status:</label>
+                            <select id="statusFilter" class="form-control" style="width: auto;">
+                                <option value="all">All Courses</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="not-started">Not Started</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <label for="sortBy" style="font-weight: 600;">Sort by:</label>
+                            <select id="sortBy" class="form-control" style="width: auto;">
+                                <option value="progress">Progress</option>
+                                <option value="name">Course Name</option>
+                                <option value="enrolled">Enrollment Date</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- My Courses -->
+            <section>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2 style="color: #333;">My Courses</h2>
+                    <a href="courses.html" class="btn btn-outline">Browse More Courses</a>
+                </div>
+                
+                <div id="myCoursesContainer">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+
+                <!-- No Courses Message -->
+                <div id="noCoursesMessage" style="display: none; text-align: center; padding: 4rem 2rem;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">📚</div>
+                    <h3 style="margin-bottom: 1rem; color: #333;">No Courses Yet</h3>
+                    <p style="color: #666; margin-bottom: 2rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+                        You haven't enrolled in any courses yet. Start your learning journey by exploring our course catalog.
+                    </p>
+                    <a href="courses.html" class="btn btn-primary">Explore Courses</a>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let allCourses = [];
+        let filteredCourses = [];
+
+        // Check authentication
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Load user's courses
+        async function loadMyCourses() {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(`/api/student-progress-details?username=${encodeURIComponent(currentUser.username)}&email=${encodeURIComponent(currentUser.email)}`);
+                allCourses = await response.json();
+                filteredCourses = [...allCourses];
+                
+                displayCourses();
+                updateStatistics();
+                
+            } catch (error) {
+                console.error('Error loading courses:', error);
+                document.getElementById('myCoursesContainer').innerHTML = 
+                    '<p style="text-align: center; color: #666;">Unable to load your courses at the moment.</p>';
+            }
+        }
+
+        // Display courses
+        function displayCourses() {
+            const container = document.getElementById('myCoursesContainer');
+            const noCoursesMessage = document.getElementById('noCoursesMessage');
+            
+            if (filteredCourses.length === 0) {
+                container.innerHTML = '';
+                noCoursesMessage.style.display = allCourses.length === 0 ? 'block' : 'none';
+                return;
+            }
+            
+            noCoursesMessage.style.display = 'none';
+            
+            container.innerHTML = `
+                <div class="course-grid">
+                    ${filteredCourses.map(course => `
+                        <div class="course-card fade-in">
+                            <img src="${course.courseImage}" alt="${course.courseName}" class="course-image" 
+                                 onerror="this.src='data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 300 200\\"><rect width=\\"300\\" height=\\"200\\" fill=\\"%23f0f0f0\\"/><text x=\\"150\\" y=\\"100\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"16\\">Course Image</text></svg>'">
+                            <div class="course-content">
+                                <h3 class="course-title">${course.courseName}</h3>
+                                <p class="course-description">${course.courseDescription}</p>
+                                
+                                <!-- Progress Bar -->
+                                <div style="margin: 1rem 0;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 600; color: #333;">Progress</span>
+                                        <span style="font-weight: bold; color: #667eea;">${course.overallProgress}%</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: ${course.overallProgress}%"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Course Stats -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 1rem 0; font-size: 0.9rem; color: #666;">
+                                    <div>📖 ${course.completedModules}/${course.totalModules} modules</div>
+                                    <div>📝 ${course.quizScores.length} quizzes</div>
+                                    <div>🏆 ${course.finalExamScore ? 'Exam completed' : 'Exam pending'}</div>
+                                    <div>✅ ${course.isCompleted ? 'Completed' : 'In progress'}</div>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                    <a href="course-details.html?course=${encodeURIComponent(course.courseName)}" 
+                                       class="btn btn-primary" style="flex: 1;">
+                                       ${course.isCompleted ? 'Review' : 'Continue'}
+                                    </a>
+                                    <a href="progress.html?course=${encodeURIComponent(course.courseName)}" 
+                                       class="btn btn-outline" style="flex: 1;">Progress</a>
+                                </div>
+                                
+                                ${course.isCompleted ? `
+                                    <div style="text-align: center; margin-top: 1rem; padding: 0.5rem; background: #d4edda; border-radius: 5px; color: #155724;">
+                                        🎉 Course Completed!
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const enrolledCount = allCourses.length;
+            const completedCount = allCourses.filter(course => course.isCompleted).length;
+            const totalProgress = allCourses.reduce((sum, course) => sum + course.overallProgress, 0);
+            const averageProgress = enrolledCount > 0 ? Math.round(totalProgress / enrolledCount) : 0;
+            const totalQuizzes = allCourses.reduce((sum, course) => sum + course.quizScores.length, 0);
+
+            // Animate numbers
+            animateNumber('enrolledCount', enrolledCount);
+            animateNumber('completedCount', completedCount);
+            animateNumber('totalQuizzes', totalQuizzes);
+            
+            // Update average progress
+            document.getElementById('averageProgress').textContent = averageProgress + '%';
+        }
+
+        // Filter courses
+        function filterCourses() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+            
+            // Filter by status
+            if (statusFilter === 'all') {
+                filteredCourses = [...allCourses];
+            } else if (statusFilter === 'completed') {
+                filteredCourses = allCourses.filter(course => course.isCompleted);
+            } else if (statusFilter === 'in-progress') {
+                filteredCourses = allCourses.filter(course => !course.isCompleted && course.overallProgress > 0);
+            } else if (statusFilter === 'not-started') {
+                filteredCourses = allCourses.filter(course => course.overallProgress === 0);
+            }
+            
+            // Sort courses
+            filteredCourses.sort((a, b) => {
+                switch (sortBy) {
+                    case 'progress':
+                        return b.overallProgress - a.overallProgress;
+                    case 'name':
+                        return a.courseName.localeCompare(b.courseName);
+                    case 'enrolled':
+                        return new Date(b.enrolledAt) - new Date(a.enrolledAt);
+                    default:
+                        return 0;
+                }
+            });
+            
+            displayCourses();
+        }
+
+        // Animate number counting
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const duration = 1500;
+            const steps = 30;
+            const increment = targetNumber / steps;
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetNumber) {
+                    current = targetNumber;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current);
+            }, duration / steps);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadMyCourses();
+                
+                // Add event listeners for filters
+                document.getElementById('statusFilter').addEventListener('change', filterCourses);
+                document.getElementById('sortBy').addEventListener('change', filterCourses);
+            }
+        });
+    </script>
+</body>
+</html>
+

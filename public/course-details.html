@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Details - LearnHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="index.html" class="logo">📚 LearnHub</a>
+                <ul class="nav-links" id="navLinks">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+                <div class="user-info" id="userInfo">
+                    <a href="login.html" class="btn btn-outline">Login</a>
+                    <a href="register.html" class="btn btn-primary">Sign Up</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Course Header -->
+            <section id="courseHeader" style="margin-bottom: 3rem;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- Course Content -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 3rem; align-items: start;">
+                <!-- Main Content -->
+                <div>
+                    <!-- Course Description -->
+                    <section style="margin-bottom: 3rem;">
+                        <div class="card">
+                            <h2 style="margin-bottom: 1.5rem; color: #333;">About This Course</h2>
+                            <div id="courseDescription">
+                                <div class="loading">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Course Modules -->
+                    <section style="margin-bottom: 3rem;">
+                        <div class="card">
+                            <h2 style="margin-bottom: 1.5rem; color: #333;">Course Modules</h2>
+                            <div id="courseModules">
+                                <div class="loading">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Course Progress (for enrolled users) -->
+                    <section id="progressSection" style="display: none; margin-bottom: 3rem;">
+                        <div class="card">
+                            <h2 style="margin-bottom: 1.5rem; color: #333;">Your Progress</h2>
+                            <div id="courseProgress"></div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Sidebar -->
+                <div>
+                    <!-- Enrollment Card -->
+                    <div class="card" style="position: sticky; top: 2rem;">
+                        <div id="enrollmentCard">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Course Info -->
+                    <div class="card" style="margin-top: 2rem;">
+                        <h3 style="margin-bottom: 1rem; color: #333;">Course Information</h3>
+                        <div id="courseInfo">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let currentCourse = null;
+        let courseName = null;
+        let isEnrolled = false;
+        let userProgress = null;
+
+        // Get course name from URL
+        function getCourseNameFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('course');
+        }
+
+        // Check if user is logged in
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            if (user) {
+                currentUser = JSON.parse(user);
+                updateNavigation();
+            }
+        }
+
+        // Update navigation for logged-in users
+        function updateNavigation() {
+            const navLinks = document.getElementById('navLinks');
+            const userInfo = document.getElementById('userInfo');
+            
+            if (currentUser) {
+                navLinks.innerHTML = `
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="my-courses.html">My Courses</a></li>
+                    <li><a href="progress.html">Progress</a></li>
+                `;
+                
+                userInfo.innerHTML = `
+                    <span>Welcome, ${currentUser.username}!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                `;
+            }
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Load course details
+        async function loadCourseDetails() {
+            if (!courseName) {
+                window.location.href = 'courses.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/courses/${encodeURIComponent(courseName)}`);
+                if (!response.ok) {
+                    throw new Error('Course not found');
+                }
+                
+                currentCourse = await response.json();
+                displayCourseHeader();
+                displayCourseDescription();
+                displayCourseModules();
+                displayCourseInfo();
+                displayEnrollmentCard();
+                
+                // Check enrollment status if user is logged in
+                if (currentUser) {
+                    await checkEnrollmentStatus();
+                }
+                
+            } catch (error) {
+                console.error('Error loading course details:', error);
+                document.getElementById('courseHeader').innerHTML = 
+                    '<div class="card"><h1 style="color: #dc3545;">Course Not Found</h1><p>The requested course could not be found.</p><a href="courses.html" class="btn btn-primary">Back to Courses</a></div>';
+            }
+        }
+
+        // Display course header
+        function displayCourseHeader() {
+            document.getElementById('courseHeader').innerHTML = `
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 2rem; align-items: center;">
+                        <div>
+                            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">${currentCourse.name}</h1>
+                            <p style="font-size: 1.2rem; opacity: 0.9; margin-bottom: 1rem;">${currentCourse.description}</p>
+                            <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span>📅</span>
+                                    <span>${currentCourse.duration} weeks</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span>📚</span>
+                                    <span>${currentCourse.category}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span>📖</span>
+                                    <span>${currentCourse.modules.length} modules</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <img src="${currentCourse.image}" alt="${currentCourse.name}" 
+                                 style="width: 200px; height: 150px; object-fit: cover; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);"
+                                 onerror="this.src='data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 200 150\\"><rect width=\\"200\\" height=\\"150\\" fill=\\"%23f0f0f0\\"/><text x=\\"100\\" y=\\"75\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"14\\">Course Image</text></svg>'">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display course description
+        function displayCourseDescription() {
+            document.getElementById('courseDescription').innerHTML = `
+                <p style="font-size: 1.1rem; line-height: 1.8; color: #555; margin-bottom: 2rem;">${currentCourse.description}</p>
+                
+                <h3 style="margin-bottom: 1rem; color: #333;">What You'll Learn</h3>
+                <ul style="list-style: none; padding: 0;">
+                    ${currentCourse.modules.map((module, index) => `
+                        <li style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="color: #28a745; margin-right: 0.5rem; font-weight: bold;">✓</span>
+                            ${module.title}
+                        </li>
+                    `).join('')}
+                </ul>
+                
+                <h3 style="margin: 2rem 0 1rem 0; color: #333;">Course Features</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.5rem;">🎥</span>
+                        <span>Video Lectures</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.5rem;">📝</span>
+                        <span>Interactive Quizzes</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.5rem;">🏆</span>
+                        <span>Final Exam</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.5rem;">📜</span>
+                        <span>Certificate</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display course modules
+        function displayCourseModules() {
+            document.getElementById('courseModules').innerHTML = `
+                <ul class="module-list">
+                    ${currentCourse.modules.map((module, index) => `
+                        <li class="module-item">
+                            <div class="module-link" style="cursor: ${isEnrolled ? 'pointer' : 'default'};" 
+                                 onclick="${isEnrolled ? `openModule(${index})` : 'showEnrollmentRequired()'}">
+                                <div class="module-icon">${index + 1}</div>
+                                <div class="module-info">
+                                    <div class="module-title">${module.title}</div>
+                                    <div class="module-status">
+                                        ${isEnrolled ? getModuleStatus(index) : 'Enrollment required'}
+                                    </div>
+                                </div>
+                                <div class="module-progress">
+                                    ${isEnrolled ? getModuleProgress(index) : '🔒'}
+                                </div>
+                            </div>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+        }
+
+        // Get module status
+        function getModuleStatus(moduleIndex) {
+            if (!userProgress || !userProgress.moduleProgress) return 'Not started';
+            
+            const moduleProgress = userProgress.moduleProgress.find(mp => mp.moduleIndex === moduleIndex);
+            if (!moduleProgress) return 'Not started';
+            
+            switch (moduleProgress.status) {
+                case 'completed': return 'Completed ✓';
+                case 'in-progress': return 'In progress';
+                default: return 'Not started';
+            }
+        }
+
+        // Get module progress
+        function getModuleProgress(moduleIndex) {
+            if (!userProgress || !userProgress.moduleProgress) return '0%';
+            
+            const moduleProgress = userProgress.moduleProgress.find(mp => mp.moduleIndex === moduleIndex);
+            return moduleProgress ? `${moduleProgress.completion}%` : '0%';
+        }
+
+        // Display course info
+        function displayCourseInfo() {
+            document.getElementById('courseInfo').innerHTML = `
+                <div style="space-y: 1rem;">
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e1e5e9;">
+                        <span style="font-weight: 600;">Duration:</span>
+                        <span>${currentCourse.duration} weeks</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e1e5e9;">
+                        <span style="font-weight: 600;">Category:</span>
+                        <span>${currentCourse.category}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e1e5e9;">
+                        <span style="font-weight: 600;">Modules:</span>
+                        <span>${currentCourse.modules.length}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e1e5e9;">
+                        <span style="font-weight: 600;">Quizzes:</span>
+                        <span>${currentCourse.quizzes.length}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                        <span style="font-weight: 600;">Final Exam:</span>
+                        <span>Yes</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display enrollment card
+        function displayEnrollmentCard() {
+            if (!currentUser) {
+                document.getElementById('enrollmentCard').innerHTML = `
+                    <div style="text-align: center;">
+                        <h3 style="margin-bottom: 1rem; color: #333;">Ready to Start Learning?</h3>
+                        <p style="color: #666; margin-bottom: 2rem;">Sign in to enroll in this course and start your learning journey.</p>
+                        <a href="login.html" class="btn btn-primary w-100" style="margin-bottom: 1rem;">Login to Enroll</a>
+                        <p style="font-size: 0.9rem; color: #666;">Don't have an account? <a href="register.html" style="color: #667eea;">Sign up here</a></p>
+                    </div>
+                `;
+            } else {
+                document.getElementById('enrollmentCard').innerHTML = `
+                    <div style="text-align: center;">
+                        <h3 style="margin-bottom: 1rem; color: #333;">Enroll in This Course</h3>
+                        <p style="color: #666; margin-bottom: 2rem;">Join thousands of students learning this course.</p>
+                        <button id="enrollBtn" onclick="enrollInCourse()" class="btn btn-primary w-100">
+                            Enroll Now
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Check enrollment status
+        async function checkEnrollmentStatus() {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(`/api/student-progress-details?username=${encodeURIComponent(currentUser.username)}&email=${encodeURIComponent(currentUser.email)}`);
+                const enrolledCourses = await response.json();
+                
+                const enrollment = enrolledCourses.find(course => course.courseName === courseName);
+                
+                if (enrollment) {
+                    isEnrolled = true;
+                    userProgress = enrollment;
+                    updateEnrolledState();
+                    displayProgress();
+                }
+                
+                // Refresh modules display
+                displayCourseModules();
+                
+            } catch (error) {
+                console.error('Error checking enrollment status:', error);
+            }
+        }
+
+        // Update enrolled state
+        function updateEnrolledState() {
+            document.getElementById('enrollmentCard').innerHTML = `
+                <div style="text-align: center;">
+                    <div style="color: #28a745; font-size: 2rem; margin-bottom: 1rem;">✓</div>
+                    <h3 style="margin-bottom: 1rem; color: #28a745;">You're Enrolled!</h3>
+                    <p style="color: #666; margin-bottom: 2rem;">Continue your learning journey.</p>
+                    <a href="my-courses.html" class="btn btn-primary w-100">Go to My Courses</a>
+                </div>
+            `;
+        }
+
+        // Display progress
+        function displayProgress() {
+            if (!userProgress) return;
+            
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('courseProgress').innerHTML = `
+                <div style="margin-bottom: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <span style="font-weight: 600;">Overall Progress</span>
+                        <span style="font-weight: bold; color: #667eea;">${userProgress.overallProgress}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${userProgress.overallProgress}%"></div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                    <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${userProgress.completedModules}</div>
+                        <div style="font-size: 0.9rem; color: #666;">Modules Completed</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${userProgress.quizScores.length}</div>
+                        <div style="font-size: 0.9rem; color: #666;">Quizzes Taken</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: ${userProgress.finalExamScore ? '#28a745' : '#dc3545'};">
+                            ${userProgress.finalExamScore ? '✓' : '✗'}
+                        </div>
+                        <div style="font-size: 0.9rem; color: #666;">Final Exam</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Enroll in course
+        async function enrollInCourse() {
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            const enrollBtn = document.getElementById('enrollBtn');
+            enrollBtn.disabled = true;
+            enrollBtn.textContent = 'Enrolling...';
+            
+            try {
+                const response = await fetch('/api/enroll', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        courseName: courseName,
+                        username: currentUser.username
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    isEnrolled = true;
+                    updateEnrolledState();
+                    displayCourseModules();
+                    showAlert('Successfully enrolled in ' + courseName + '!', 'success');
+                } else {
+                    showAlert(result.message || 'Enrollment failed. Please try again.');
+                    enrollBtn.disabled = false;
+                    enrollBtn.textContent = 'Enroll Now';
+                }
+                
+            } catch (error) {
+                console.error('Enrollment error:', error);
+                showAlert('Network error. Please try again.');
+                enrollBtn.disabled = false;
+                enrollBtn.textContent = 'Enroll Now';
+            }
+        }
+
+        // Open module
+        function openModule(moduleIndex) {
+            if (!isEnrolled) {
+                showEnrollmentRequired();
+                return;
+            }
+            
+            window.location.href = `module.html?course=${encodeURIComponent(courseName)}&module=${moduleIndex}`;
+        }
+
+        // Show enrollment required message
+        function showEnrollmentRequired() {
+            showAlert('Please enroll in this course to access the modules.');
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            courseName = getCourseNameFromURL();
+            checkAuth();
+            loadCourseDetails();
+        });
+    </script>
+</body>
+</html>
+

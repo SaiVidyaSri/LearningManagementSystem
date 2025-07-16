@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - LearnHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="index.html" class="logo">📚 LearnHub</a>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+                <div class="user-info">
+                    <a href="register.html" class="btn btn-outline">Sign Up</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div style="max-width: 400px; margin: 2rem auto;">
+                <div class="card fade-in">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <h1 style="color: #333; margin-bottom: 0.5rem;">Welcome Back</h1>
+                        <p style="color: #666;">Sign in to your LearnHub account</p>
+                    </div>
+
+                    <div id="alertContainer"></div>
+
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" class="form-control" required>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <label style="display: flex; align-items: center; font-weight: normal;">
+                                <input type="checkbox" id="rememberMe" style="margin-right: 0.5rem;">
+                                Remember me
+                            </label>
+                            <a href="forgot-password.html" style="color: #667eea; text-decoration: none;">Forgot Password?</a>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" id="loginBtn">
+                            <span id="loginBtnText">Sign In</span>
+                            <div id="loginSpinner" class="spinner" style="display: none; width: 20px; height: 20px; margin: 0 auto;"></div>
+                        </button>
+                    </form>
+
+                    <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e1e5e9;">
+                        <p style="color: #666;">Don't have an account? <a href="register.html" style="color: #667eea; text-decoration: none; font-weight: 600;">Sign up here</a></p>
+                    </div>
+                </div>
+
+                <!-- Demo Credentials Card -->
+                <div class="card" style="margin-top: 1rem; background: #f8f9ff; border: 1px solid #e1e5e9;">
+                    <h3 style="color: #667eea; margin-bottom: 1rem; text-align: center;">Demo Credentials</h3>
+                    <p style="color: #666; margin-bottom: 1rem; text-align: center;">Use these credentials to test the system:</p>
+                    <div style="background: white; padding: 1rem; border-radius: 5px; font-family: monospace;">
+                        <p style="margin: 0.5rem 0;"><strong>Email:</strong> demo@learnhub.com</p>
+                        <p style="margin: 0.5rem 0;"><strong>Password:</strong> demo123</p>
+                    </div>
+                    <button onclick="fillDemoCredentials()" class="btn btn-secondary w-100" style="margin-top: 1rem;">Use Demo Credentials</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: auto;">
+        <div class="container">
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Fill demo credentials
+        function fillDemoCredentials() {
+            document.getElementById('email').value = 'demo@learnhub.com';
+            document.getElementById('password').value = 'demo123';
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        // Handle form submission
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const loginBtnText = document.getElementById('loginBtnText');
+            const loginSpinner = document.getElementById('loginSpinner');
+            
+            // Show loading state
+            loginBtn.disabled = true;
+            loginBtnText.style.display = 'none';
+            loginSpinner.style.display = 'block';
+            
+            const formData = new FormData(e.target);
+            const loginData = {
+                email: formData.get('email'),
+                password: formData.get('password')
+            };
+            
+            try {
+                const response = await fetch('http://localhost:5000/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(loginData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Store user info and token in localStorage
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    localStorage.setItem('token', result.token);
+                    
+                    showAlert('Login successful! Redirecting...', 'success');
+                    
+                    // Redirect based on user role
+                    setTimeout(() => {
+                        switch(result.user.role) {
+                            case 'admin':
+                                window.location.href = 'admin-dashboard.html';
+                                break;
+                            case 'instructor':
+                                if (result.user.instructorStatus === 'approved') {
+                                    window.location.href = 'instructor-dashboard.html';
+                                } else {
+                                    window.location.href = 'instructor-pending.html';
+                                }
+                                break;
+                            case 'student':
+                            default:
+                                window.location.href = 'student-dashboard.html';
+                                break;
+                        }
+                    }, 1500);
+                } else {
+                    showAlert(result.error || 'Login failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showAlert('Network error. Please check your connection and try again.');
+            } finally {
+                // Reset button state
+                loginBtn.disabled = false;
+                loginBtnText.style.display = 'block';
+                loginSpinner.style.display = 'none';
+            }
+        });
+
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = localStorage.getItem('user');
+            if (user) {
+                window.location.href = 'dashboard.html';
+            }
+        });
+
+        // Handle remember me functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const rememberMe = localStorage.getItem('rememberMe');
+            const savedEmail = localStorage.getItem('savedEmail');
+            
+            if (rememberMe === 'true' && savedEmail) {
+                document.getElementById('email').value = savedEmail;
+                document.getElementById('rememberMe').checked = true;
+            }
+        });
+
+        // Save email if remember me is checked
+        document.getElementById('loginForm').addEventListener('submit', () => {
+            const rememberMe = document.getElementById('rememberMe').checked;
+            const email = document.getElementById('email').value;
+            
+            if (rememberMe) {
+                localStorage.setItem('rememberMe', 'true');
+                localStorage.setItem('savedEmail', email);
+            } else {
+                localStorage.removeItem('rememberMe');
+                localStorage.removeItem('savedEmail');
+            }
+        });
+    </script>
+</body>
+</html>
+

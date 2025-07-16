@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Course - LearnHub</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .form-step {
+            display: none;
+        }
+        .form-step.active {
+            display: block;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e1e5e9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 1rem;
+            font-weight: bold;
+            color: #666;
+        }
+        .step.active {
+            background: #667eea;
+            color: white;
+        }
+        .step.completed {
+            background: #28a745;
+            color: white;
+        }
+        .module-item, .lesson-item, .quiz-item {
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f8f9fa;
+        }
+        .drag-drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .drag-drop-area:hover {
+            border-color: #667eea;
+        }
+        .drag-drop-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="instructor-dashboard.html" class="logo">📚 LearnHub - Instructor</a>
+                <ul class="nav-links">
+                    <li><a href="instructor-dashboard.html">Dashboard</a></li>
+                    <li><a href="instructor-courses.html">My Courses</a></li>
+                    <li><a href="instructor-create-course.html">Create Course</a></li>
+                    <li><a href="instructor-students.html">Students</a></li>
+                    <li><a href="instructor-queries.html">Q&A</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">Create New Course 🎓</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Share your knowledge and help students learn new skills.</p>
+                </div>
+            </section>
+
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step active" id="step1">1</div>
+                <div class="step" id="step2">2</div>
+                <div class="step" id="step3">3</div>
+                <div class="step" id="step4">4</div>
+                <div class="step" id="step5">5</div>
+            </div>
+
+            <!-- Course Creation Form -->
+            <form id="courseForm" enctype="multipart/form-data">
+                <!-- Step 1: Basic Information -->
+                <div class="form-step active" id="formStep1">
+                    <div class="card">
+                        <h2 style="margin-bottom: 2rem; color: #333;">Basic Course Information</h2>
+                        
+                        <div class="form-group">
+                            <label for="courseName">Course Name *</label>
+                            <input type="text" id="courseName" class="form-control" required 
+                                   placeholder="Enter course name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="shortDescription">Short Description *</label>
+                            <input type="text" id="shortDescription" class="form-control" required 
+                                   placeholder="Brief description for course listings" maxlength="150">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="description">Detailed Description *</label>
+                            <textarea id="description" class="form-control" rows="5" required 
+                                      placeholder="Detailed course description"></textarea>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label for="category">Category *</label>
+                                <select id="category" class="form-control" required>
+                                    <option value="">Select Category</option>
+                                    <option value="Programming">Programming</option>
+                                    <option value="Web Development">Web Development</option>
+                                    <option value="Data Science">Data Science</option>
+                                    <option value="Design">Design</option>
+                                    <option value="Business">Business</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Photography">Photography</option>
+                                    <option value="Music">Music</option>
+                                    <option value="Language">Language</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="level">Difficulty Level *</label>
+                                <select id="level" class="form-control" required>
+                                    <option value="">Select Level</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label for="duration">Duration (weeks) *</label>
+                                <input type="number" id="duration" class="form-control" required min="1" max="52">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="estimatedHours">Estimated Hours *</label>
+                                <input type="number" id="estimatedHours" class="form-control" required min="1" max="1000">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="price">Price ($)</label>
+                                <input type="number" id="price" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="language">Language</label>
+                            <select id="language" class="form-control">
+                                <option value="English">English</option>
+                                <option value="Spanish">Spanish</option>
+                                <option value="French">French</option>
+                                <option value="German">German</option>
+                                <option value="Chinese">Chinese</option>
+                                <option value="Japanese">Japanese</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: flex-end; margin-top: 2rem;">
+                            <button type="button" onclick="nextStep()" class="btn btn-primary">Next Step</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Course Media -->
+                <div class="form-step" id="formStep2">
+                    <div class="card">
+                        <h2 style="margin-bottom: 2rem; color: #333;">Course Media</h2>
+                        
+                        <div class="form-group">
+                            <label>Course Image *</label>
+                            <div class="drag-drop-area" onclick="document.getElementById('courseImage').click()">
+                                <div id="imagePreview">
+                                    <div style="font-size: 3rem; margin-bottom: 1rem;">🖼️</div>
+                                    <p>Click to upload course image</p>
+                                    <small>Recommended: 1200x600px, JPG or PNG</small>
+                                </div>
+                            </div>
+                            <input type="file" id="courseImage" accept="image/*" style="display: none;" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Preview Video (Optional)</label>
+                            <div class="drag-drop-area" onclick="document.getElementById('previewVideo').click()">
+                                <div id="videoPreview">
+                                    <div style="font-size: 3rem; margin-bottom: 1rem;">🎥</div>
+                                    <p>Click to upload preview video</p>
+                                    <small>MP4 format, max 100MB</small>
+                                </div>
+                            </div>
+                            <input type="file" id="previewVideo" accept="video/*" style="display: none;">
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                            <button type="button" onclick="prevStep()" class="btn btn-secondary">Previous</button>
+                            <button type="button" onclick="nextStep()" class="btn btn-primary">Next Step</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Course Structure -->
+                <div class="form-step" id="formStep3">
+                    <div class="card">
+                        <h2 style="margin-bottom: 2rem; color: #333;">Course Structure</h2>
+                        
+                        <div class="form-group">
+                            <label>Prerequisites</label>
+                            <div id="prerequisitesContainer">
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <input type="text" class="form-control prerequisite-input" placeholder="Enter prerequisite">
+                                    <button type="button" onclick="addPrerequisite()" class="btn btn-outline">Add</button>
+                                </div>
+                            </div>
+                            <div id="prerequisitesList"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Learning Outcomes</label>
+                            <div id="outcomesContainer">
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <input type="text" class="form-control outcome-input" placeholder="What will students learn?">
+                                    <button type="button" onclick="addOutcome()" class="btn btn-outline">Add</button>
+                                </div>
+                            </div>
+                            <div id="outcomesList"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Target Audience</label>
+                            <div id="audienceContainer">
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <input type="text" class="form-control audience-input" placeholder="Who is this course for?">
+                                    <button type="button" onclick="addAudience()" class="btn btn-outline">Add</button>
+                                </div>
+                            </div>
+                            <div id="audienceList"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                            <button type="button" onclick="prevStep()" class="btn btn-secondary">Previous</button>
+                            <button type="button" onclick="nextStep()" class="btn btn-primary">Next Step</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Modules and Content -->
+                <div class="form-step" id="formStep4">
+                    <div class="card">
+                        <h2 style="margin-bottom: 2rem; color: #333;">Course Modules</h2>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                            <p style="color: #666; margin: 0;">Create modules to organize your course content</p>
+                            <button type="button" onclick="addModule()" class="btn btn-primary">Add Module</button>
+                        </div>
+                        
+                        <div id="modulesList">
+                            <!-- Modules will be added here dynamically -->
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                            <button type="button" onclick="prevStep()" class="btn btn-secondary">Previous</button>
+                            <button type="button" onclick="nextStep()" class="btn btn-primary">Next Step</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Review and Publish -->
+                <div class="form-step" id="formStep5">
+                    <div class="card">
+                        <h2 style="margin-bottom: 2rem; color: #333;">Review and Publish</h2>
+                        
+                        <div id="courseReview">
+                            <!-- Course review will be generated here -->
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Course Status</label>
+                            <select id="courseStatus" class="form-control">
+                                <option value="draft">Save as Draft</option>
+                                <option value="pending">Submit for Review</option>
+                            </select>
+                            <small style="color: #666;">Courses must be approved before being published</small>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+                            <button type="button" onclick="prevStep()" class="btn btn-secondary">Previous</button>
+                            <button type="submit" class="btn btn-success" id="submitBtn">Create Course</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentStep = 1;
+        let currentUser = null;
+        let moduleCount = 0;
+        let courseData = {
+            prerequisites: [],
+            learningOutcomes: [],
+            targetAudience: [],
+            modules: []
+        };
+
+        // Check authentication
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            if (currentUser.role !== 'instructor') {
+                window.location.href = 'dashboard.html';
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        // Step navigation
+        function nextStep() {
+            if (validateCurrentStep()) {
+                if (currentStep < 5) {
+                    document.getElementById(`formStep${currentStep}`).classList.remove('active');
+                    document.getElementById(`step${currentStep}`).classList.remove('active');
+                    document.getElementById(`step${currentStep}`).classList.add('completed');
+                    
+                    currentStep++;
+                    
+                    document.getElementById(`formStep${currentStep}`).classList.add('active');
+                    document.getElementById(`step${currentStep}`).classList.add('active');
+                    
+                    if (currentStep === 5) {
+                        generateCourseReview();
+                    }
+                }
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                document.getElementById(`formStep${currentStep}`).classList.remove('active');
+                document.getElementById(`step${currentStep}`).classList.remove('active');
+                
+                currentStep--;
+                
+                document.getElementById(`formStep${currentStep}`).classList.add('active');
+                document.getElementById(`step${currentStep}`).classList.remove('completed');
+                document.getElementById(`step${currentStep}`).classList.add('active');
+            }
+        }
+
+        // Validation
+        function validateCurrentStep() {
+            switch (currentStep) {
+                case 1:
+                    return validateBasicInfo();
+                case 2:
+                    return validateMedia();
+                case 3:
+                    return true; // Optional fields
+                case 4:
+                    return validateModules();
+                default:
+                    return true;
+            }
+        }
+
+        function validateBasicInfo() {
+            const required = ['courseName', 'shortDescription', 'description', 'category', 'level', 'duration', 'estimatedHours'];
+            for (let field of required) {
+                const element = document.getElementById(field);
+                if (!element.value.trim()) {
+                    showAlert(`${field.replace(/([A-Z])/g, ' $1').toLowerCase()} is required`);
+                    element.focus();
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function validateMedia() {
+            const courseImage = document.getElementById('courseImage');
+            if (!courseImage.files.length) {
+                showAlert('Course image is required');
+                return false;
+            }
+            return true;
+        }
+
+        function validateModules() {
+            if (courseData.modules.length === 0) {
+                showAlert('At least one module is required');
+                return false;
+            }
+            
+            for (let module of courseData.modules) {
+                if (!module.title.trim() || !module.description.trim()) {
+                    showAlert('All modules must have title and description');
+                    return false;
+                }
+                if (module.lessons.length === 0) {
+                    showAlert('Each module must have at least one lesson');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Prerequisites, outcomes, and audience management
+        function addPrerequisite() {
+            const input = document.querySelector('.prerequisite-input');
+            const value = input.value.trim();
+            if (value) {
+                courseData.prerequisites.push(value);
+                updatePrerequisitesList();
+                input.value = '';
+            }
+        }
+
+        function updatePrerequisitesList() {
+            const container = document.getElementById('prerequisitesList');
+            container.innerHTML = courseData.prerequisites.map((item, index) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8f9fa; border-radius: 5px; margin-bottom: 0.5rem;">
+                    <span>${item}</span>
+                    <button type="button" onclick="removePrerequisite(${index})" class="btn btn-sm btn-danger">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removePrerequisite(index) {
+            courseData.prerequisites.splice(index, 1);
+            updatePrerequisitesList();
+        }
+
+        function addOutcome() {
+            const input = document.querySelector('.outcome-input');
+            const value = input.value.trim();
+            if (value) {
+                courseData.learningOutcomes.push(value);
+                updateOutcomesList();
+                input.value = '';
+            }
+        }
+
+        function updateOutcomesList() {
+            const container = document.getElementById('outcomesList');
+            container.innerHTML = courseData.learningOutcomes.map((item, index) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8f9fa; border-radius: 5px; margin-bottom: 0.5rem;">
+                    <span>${item}</span>
+                    <button type="button" onclick="removeOutcome(${index})" class="btn btn-sm btn-danger">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removeOutcome(index) {
+            courseData.learningOutcomes.splice(index, 1);
+            updateOutcomesList();
+        }
+
+        function addAudience() {
+            const input = document.querySelector('.audience-input');
+            const value = input.value.trim();
+            if (value) {
+                courseData.targetAudience.push(value);
+                updateAudienceList();
+                input.value = '';
+            }
+        }
+
+        function updateAudienceList() {
+            const container = document.getElementById('audienceList');
+            container.innerHTML = courseData.targetAudience.map((item, index) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8f9fa; border-radius: 5px; margin-bottom: 0.5rem;">
+                    <span>${item}</span>
+                    <button type="button" onclick="removeAudience(${index})" class="btn btn-sm btn-danger">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function removeAudience(index) {
+            courseData.targetAudience.splice(index, 1);
+            updateAudienceList();
+        }
+
+        // Module management
+        function addModule() {
+            moduleCount++;
+            const module = {
+                id: moduleCount,
+                title: '',
+                description: '',
+                order: courseData.modules.length + 1,
+                estimatedDuration: 60,
+                lessons: [],
+                materials: [],
+                assignments: []
+            };
+            
+            courseData.modules.push(module);
+            renderModules();
+        }
+
+        function renderModules() {
+            const container = document.getElementById('modulesList');
+            container.innerHTML = courseData.modules.map((module, index) => `
+                <div class="module-item" id="module-${module.id}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 style="margin: 0; color: #333;">Module ${index + 1}</h4>
+                        <button type="button" onclick="removeModule(${index})" class="btn btn-sm btn-danger">Remove Module</button>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Module Title *</label>
+                            <input type="text" class="form-control" value="${module.title}" 
+                                   onchange="updateModule(${index}, 'title', this.value)" placeholder="Enter module title">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Duration (minutes)</label>
+                            <input type="number" class="form-control" value="${module.estimatedDuration}" 
+                                   onchange="updateModule(${index}, 'estimatedDuration', this.value)" min="1">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Module Description *</label>
+                        <textarea class="form-control" rows="3" 
+                                  onchange="updateModule(${index}, 'description', this.value)" 
+                                  placeholder="Describe what students will learn in this module">${module.description}</textarea>
+                    </div>
+                    
+                    <div style="margin-top: 1rem;">
+                        <h5 style="color: #333; margin-bottom: 1rem;">Lessons</h5>
+                        <div id="lessons-${module.id}">
+                            ${renderLessons(module, index)}
+                        </div>
+                        <button type="button" onclick="addLesson(${index})" class="btn btn-outline btn-sm">Add Lesson</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderLessons(module, moduleIndex) {
+            return module.lessons.map((lesson, lessonIndex) => `
+                <div class="lesson-item" style="margin-bottom: 1rem; padding: 1rem; border: 1px solid #ddd; border-radius: 5px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h6 style="margin: 0;">Lesson ${lessonIndex + 1}</h6>
+                        <button type="button" onclick="removeLesson(${moduleIndex}, ${lessonIndex})" class="btn btn-sm btn-danger">Remove</button>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Lesson Title *</label>
+                            <input type="text" class="form-control" value="${lesson.title}" 
+                                   onchange="updateLesson(${moduleIndex}, ${lessonIndex}, 'title', this.value)">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Type *</label>
+                            <select class="form-control" onchange="updateLesson(${moduleIndex}, ${lessonIndex}, 'type', this.value)">
+                                <option value="video" ${lesson.type === 'video' ? 'selected' : ''}>Video</option>
+                                <option value="text" ${lesson.type === 'text' ? 'selected' : ''}>Text</option>
+                                <option value="document" ${lesson.type === 'document' ? 'selected' : ''}>Document</option>
+                                <option value="interactive" ${lesson.type === 'interactive' ? 'selected' : ''}>Interactive</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Duration (min)</label>
+                            <input type="number" class="form-control" value="${lesson.duration}" 
+                                   onchange="updateLesson(${moduleIndex}, ${lessonIndex}, 'duration', this.value)" min="1">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Content/URL *</label>
+                        <input type="text" class="form-control" value="${lesson.content}" 
+                               onchange="updateLesson(${moduleIndex}, ${lessonIndex}, 'content', this.value)"
+                               placeholder="Enter content URL or text">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateModule(moduleIndex, field, value) {
+            courseData.modules[moduleIndex][field] = value;
+        }
+
+        function removeModule(moduleIndex) {
+            if (confirm('Are you sure you want to remove this module?')) {
+                courseData.modules.splice(moduleIndex, 1);
+                renderModules();
+            }
+        }
+
+        function addLesson(moduleIndex) {
+            const lesson = {
+                title: '',
+                description: '',
+                type: 'video',
+                content: '',
+                duration: 10,
+                order: courseData.modules[moduleIndex].lessons.length + 1,
+                isPreview: false
+            };
+            
+            courseData.modules[moduleIndex].lessons.push(lesson);
+            renderModules();
+        }
+
+        function updateLesson(moduleIndex, lessonIndex, field, value) {
+            courseData.modules[moduleIndex].lessons[lessonIndex][field] = value;
+        }
+
+        function removeLesson(moduleIndex, lessonIndex) {
+            if (confirm('Are you sure you want to remove this lesson?')) {
+                courseData.modules[moduleIndex].lessons.splice(lessonIndex, 1);
+                renderModules();
+            }
+        }
+
+        // Generate course review
+        function generateCourseReview() {
+            const container = document.getElementById('courseReview');
+            
+            const basicInfo = {
+                name: document.getElementById('courseName').value,
+                category: document.getElementById('category').value,
+                level: document.getElementById('level').value,
+                duration: document.getElementById('duration').value,
+                estimatedHours: document.getElementById('estimatedHours').value,
+                price: document.getElementById('price').value
+            };
+            
+            container.innerHTML = `
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                    <h3 style="margin-bottom: 1rem; color: #333;">${basicInfo.name}</h3>
+                    <p style="color: #666; margin-bottom: 1rem;">${document.getElementById('shortDescription').value}</p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                        <div><strong>Category:</strong> ${basicInfo.category}</div>
+                        <div><strong>Level:</strong> ${basicInfo.level}</div>
+                        <div><strong>Duration:</strong> ${basicInfo.duration} weeks</div>
+                        <div><strong>Estimated Hours:</strong> ${basicInfo.estimatedHours}</div>
+                        <div><strong>Price:</strong> $${basicInfo.price}</div>
+                        <div><strong>Modules:</strong> ${courseData.modules.length}</div>
+                    </div>
+                    
+                    ${courseData.prerequisites.length > 0 ? `
+                        <div style="margin-bottom: 1rem;">
+                            <strong>Prerequisites:</strong>
+                            <ul style="margin: 0.5rem 0;">
+                                ${courseData.prerequisites.map(p => `<li>${p}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    ${courseData.learningOutcomes.length > 0 ? `
+                        <div style="margin-bottom: 1rem;">
+                            <strong>Learning Outcomes:</strong>
+                            <ul style="margin: 0.5rem 0;">
+                                ${courseData.learningOutcomes.map(o => `<li>${o}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    <div>
+                        <strong>Course Structure:</strong>
+                        <ul style="margin: 0.5rem 0;">
+                            ${courseData.modules.map((module, index) => `
+                                <li>${index + 1}. ${module.title} (${module.lessons.length} lessons)</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // File upload handlers
+        document.getElementById('courseImage').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').innerHTML = `
+                        <img src="${e.target.result}" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                        <p style="margin-top: 1rem;">${file.name}</p>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('previewVideo').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('videoPreview').innerHTML = `
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+                    <p>${file.name}</p>
+                    <small>Video uploaded successfully</small>
+                `;
+            }
+        });
+
+        // Form submission
+        document.getElementById('courseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!validateCurrentStep()) {
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Course...';
+            
+            try {
+                const formData = new FormData();
+                
+                // Add course data
+                const courseInfo = {
+                    name: document.getElementById('courseName').value,
+                    description: document.getElementById('description').value,
+                    shortDescription: document.getElementById('shortDescription').value,
+                    category: document.getElementById('category').value,
+                    level: document.getElementById('level').value,
+                    language: document.getElementById('language').value,
+                    duration: parseInt(document.getElementById('duration').value),
+                    estimatedHours: parseInt(document.getElementById('estimatedHours').value),
+                    price: parseFloat(document.getElementById('price').value) || 0,
+                    prerequisites: courseData.prerequisites,
+                    learningOutcomes: courseData.learningOutcomes,
+                    targetAudience: courseData.targetAudience,
+                    modules: courseData.modules,
+                    status: document.getElementById('courseStatus').value,
+                    quizzes: [], // Will be added later
+                    finalExam: { qanda: [] } // Will be added later
+                };
+                
+                formData.append('courseData', JSON.stringify(courseInfo));
+                
+                // Add files
+                const courseImage = document.getElementById('courseImage').files[0];
+                if (courseImage) {
+                    formData.append('courseImage', courseImage);
+                }
+                
+                const previewVideo = document.getElementById('previewVideo').files[0];
+                if (previewVideo) {
+                    formData.append('previewVideo', previewVideo);
+                }
+                
+                const response = await fetch('/api/courses', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Course created successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'instructor-courses.html';
+                    }, 2000);
+                } else {
+                    showAlert(result.error || 'Failed to create course');
+                }
+                
+            } catch (error) {
+                console.error('Error creating course:', error);
+                showAlert('Network error. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Course';
+            }
+        });
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                // Add initial module
+                addModule();
+            }
+        });
+
+        // Allow Enter key to add items
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                if (e.target.classList.contains('prerequisite-input')) {
+                    e.preventDefault();
+                    addPrerequisite();
+                } else if (e.target.classList.contains('outcome-input')) {
+                    e.preventDefault();
+                    addOutcome();
+                } else if (e.target.classList.contains('audience-input')) {
+                    e.preventDefault();
+                    addAudience();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
