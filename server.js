@@ -1,1025 +1,1064 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const multer = require('multer');
-const path = require('path');
-const dotenv = require('dotenv');
-const bodyParser = require('body-parser');
-const { validationResult, body } = require('express-validator');
-const bcrypt = require('bcrypt');
-const pdf = require('pdf-parse');
-const fs = require('fs');
-const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken'); // NEW: JWT for authentication
+const path = require('path'); 
 
-// Load environment variables
-dotenv.config();
+const User = require('./models/User');
+const Course = require('./models/Course');
+const Enrollment = require('./models/Enrollment');
+const Review = require('./models/Review');
+const Certificate = require('./models/Certificate');
+const Query = require('./models/Query');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(express.static('public'));
-app.use('/images', express.static(path.join(__dirname, 'images')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// JWT Secret - In production, use environment variable
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
+
+// ADMIN CREDENTIALS - FIXED CREDENTIALS FOR ADMIN LOGIN
+const ADMIN_CREDENTIALS = {
+  email: 'admin@learnova.com',
+  password: 'admin123'
+};
+
+app.use(cors());
 app.use(express.json());
-app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// CORS configuration
-const corsOptions = {
-  origin: [
-    'http://localhost:8080',
-    'http://127.0.0.1:8080',
-    'http://localhost:5000',
-    'http://localhost:3000',
-    'null'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
+const MONGODB_URI = "mongodb+srv://vidyadonthagani:vidya2004@cluster0.acdpvpq.mongodb.net/lms?retryWrites=true&w=majority&appName=Cluster0";
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('Successfully connected to MongoDB Atlas!'))
+  .catch(error => console.error('Error connecting to MongoDB:', error));
 
-// File upload configuration
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, JPG, and PDF are allowed.'), false);
+// MIDDLEWARE: Verify JWT token
+const verifyToken = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Access denied. No token provided.' });
   }
-};
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads/';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024 },
-});
-
-// MongoDB connection
-const uri = process.env.MONGODB_URI;
-mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('Connected to MongoDB Atlas'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-// Define schemas
-const moduleSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  link: { type: String, required: true },
-});
-
-const quizSchema = new mongoose.Schema({
-  qanda: [
-    {
-      id: Number,
-      question: String,
-      options: {
-        a: String,
-        b: String,
-        c: String,
-        d: String,
-      },
-      correctAnswer: String,
-    },
-  ],
-});
-
-const courseSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: { type: String, required: true },
-  duration: { type: String, required: true },
-  category: { type: String, required: true },
-  image: { type: String, required: true },
-  modules: [moduleSchema],
-  quizzes: [quizSchema],
-  finalExam: quizSchema,
-  createdAt: { type: Date, default: Date.now },
-});
-
-const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  username: { type: String, required: true },
-  password: { type: String, required: true },
-  resetPasswordToken: { type: String, default: null },
-  resetPasswordExpires: { type: Date, default: null },
-  createdAt: { type: Date, default: Date.now },
-});
-
-const enrollmentSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  email: { type: String, required: true },
-  courseName: { type: String, required: true },
-  enrolledAt: { type: Date, default: Date.now },
-  overallProgress: { type: Number, default: 0 },
-  completedModules: { type: Number, default: 0 },
-  totalModules: { type: Number, default: 0 },
-  finalExamCompleted: { type: Boolean, default: false },
-});
-
-const moduleProgressSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  email: { type: String, required: true },
-  courseName: { type: String, required: true },
-  moduleIndex: { type: Number, required: true },
-  status: { type: String, enum: ['not-started', 'in-progress', 'completed'], default: 'not-started' },
-  completion: { type: Number, default: 0 },
-  lastAccessed: { type: Date, default: Date.now }
-});
-
-const quizAttemptSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  courseName: { type: String, required: true },
-  quizType: { type: String, enum: ['module', 'final'], required: true },
-  moduleIndex: { type: Number },
-  score: { type: Number, required: true },
-  totalQuestions: { type: Number, required: true },
-  percentage: { type: Number, required: true },
-  questionResults: { type: Array, required: true },
-  submittedAt: { type: Date, default: Date.now }
-});
-
-// Models
-const Course = mongoose.model('Course', courseSchema);
-const User = mongoose.model('User', userSchema);
-const Enrollment = mongoose.model('Enrollment', enrollmentSchema);
-const ModuleProgress = mongoose.model('ModuleProgress', moduleProgressSchema);
-const QuizAttempt = mongoose.model('QuizAttempt', quizAttemptSchema);
-
-// Email configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-// Utility functions
-const generateResetToken = () => {
-  return crypto.randomBytes(20).toString('hex');
-};
-
-const extractQuestionsFromPDF = async (pdfBuffer) => {
+  
   try {
-    const data = await pdf(pdfBuffer);
-    const text = data.text;
-    const questions = [];
-    const lines = text.split('\n');
-    let currentQuestion = null;
-
-    lines.forEach((line) => {
-      if (line.match(/^\d+\.\s/)) {
-        if (currentQuestion) {
-          questions.push(currentQuestion);
-        }
-        currentQuestion = {
-          id: questions.length + 1,
-          question: line.replace(/^\d+\.\s/, '').trim(),
-          options: {},
-          correctAnswer: '',
-        };
-      } else if (line.match(/^[a-d]\)\s/)) {
-        const option = line.charAt(0);
-        const optionText = line.replace(/^[a-d]\)\s/, '').trim();
-        if (currentQuestion) {
-          currentQuestion.options[option] = optionText;
-        }
-      } else if (line.match(/^Answer:\s/)) {
-        if (currentQuestion) {
-          currentQuestion.correctAnswer = line.replace(/^Answer:\s/, '').trim();
-        }
-      }
-    });
-
-    if (currentQuestion) {
-      questions.push(currentQuestion);
-    }
-
-    return questions;
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
   } catch (error) {
-    console.error('Error extracting questions from PDF:', error);
-    throw new Error('Failed to extract questions from PDF');
+    res.status(400).json({ error: 'Invalid token.' });
   }
 };
 
-const updateCourseProgress = async (username, email, courseName) => {
-  try {
-    const course = await Course.findOne({ name: courseName });
-    if (!course) return;
-
-    const moduleProgress = await ModuleProgress.find({ username, courseName });
-    const quizResults = await QuizAttempt.find({ username, courseName, quizType: 'module' });
-    const finalExamResult = await QuizAttempt.findOne({ username, courseName, quizType: 'final' });
-
-    const totalModules = course.modules.length;
-    const completedModules = moduleProgress.filter(mp => mp.status === 'completed').length;
-
-    let overallProgress = 0;
-    if (totalModules > 0) {
-      overallProgress += (completedModules / totalModules) * 60;
-    }
-    if (quizResults.length > 0) {
-      const quizAvg = quizResults.reduce((sum, q) => sum + q.percentage, 0) / quizResults.length;
-      overallProgress += (quizAvg / 100) * 20;
-    }
-    if (finalExamResult) {
-      overallProgress += (finalExamResult.percentage / 100) * 20;
-    }
-
-    await Enrollment.findOneAndUpdate(
-      { username, courseName },
-      {
-        overallProgress: Math.round(overallProgress),
-        completedModules,
-        totalModules,
-        finalExamCompleted: !!finalExamResult
-      }
-    );
-  } catch (error) {
-    console.error('Error updating course progress:', error);
+// MIDDLEWARE: Verify admin role
+const verifyAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Access denied. Admin role required.' });
   }
+  next();
 };
 
-// Routes
-
-// Basic route
-app.get('/', (req, res) => {
-  res.send('LMS Backend Server is running!');
-});
-
-// User registration
-app.post('/register', [
-  body('email').isEmail().withMessage('Invalid email'),
-  body('username').notEmpty().withMessage('Username is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
-  body('confirmPassword').custom((value, { req }) => {
-    if (value !== req.body.password) {
-      throw new Error('Passwords do not match');
-    }
-    return true;
-  }),
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ error: errors.array()[0].msg });
+// MIDDLEWARE: Verify instructor role
+const verifyInstructor = (req, res, next) => {
+  if (req.user.role !== 'instructor') {
+    return res.status(403).json({ error: 'Access denied. Instructor role required.' });
   }
+  next();
+};
 
+// EXISTING: User registration endpoint
+app.post('/api/register', async (req, res) => {
+  console.log('Received registration request with body:', req.body);
+  const { username: fullName, email, password, role, instructorApplication } = req.body;
+  
+  if (!fullName || !email || !password || !role) {
+    return res.status(400).json({ error: 'Please provide all required fields.' });
+  }
+  
   try {
-    const { email, username, password } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: "User already exists" });
+      return res.status(400).json({ error: 'A user with this email already exists.' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const newUser = new User({
+      fullName,
       email,
-      username,
       password: hashedPassword,
+      role,
+      instructorApplication: role === 'instructor' ? instructorApplication : undefined
     });
 
     await newUser.save();
-    res.status(201).json({ 
-      message: "User registered successfully", 
-      user: { email: newUser.email, username: newUser.username }
-    });
+    res.status(201).json({ message: 'User registered successfully!' });
+
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: "Server error" });
+    console.error('Registration Error:', error);
+    res.status(500).json({ error: 'Server error during registration.' });
   }
 });
 
-// User login
-app.post('/login', async (req, res) => {
+// MODIFIED: Login endpoint with admin support
+app.post('/api/login', async (req, res) => {
+  console.log('Received login request with body:', req.body);
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Please provide both email and password.' });
+  }
+
   try {
+    // CHECK FOR ADMIN LOGIN FIRST
+    if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
+      const token = jwt.sign(
+        { 
+          id: 'admin', 
+          email: ADMIN_CREDENTIALS.email, 
+          role: 'admin' 
+        }, 
+        JWT_SECRET, 
+        { expiresIn: '24h' }
+      );
+
+      return res.status(200).json({
+        message: 'Admin login successful!',
+        user: {
+          id: 'admin',
+          username: 'Admin',
+          fullName: 'System Administrator',
+          email: ADMIN_CREDENTIALS.email,
+          role: 'admin'
+        },
+        token
+      });
+    }
+
+    // REGULAR USER LOGIN
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid email or password' });
+      return res.status(400).json({ error: 'Invalid credentials.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid email or password' });
+      return res.status(400).json({ error: 'Invalid credentials.' });
     }
 
-    res.status(200).json({ 
-      message: 'Login successful', 
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        email: user.email, 
+        role: user.role 
+      }, 
+      JWT_SECRET, 
+      { expiresIn: '24h' }
+    );
+
+    res.status(200).json({
+      message: 'Login successful!',
       user: {
-        username: user.username,
-        email: user.email
-      }
+        id: user._id,
+        username: user.fullName,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        instructorStatus: user.instructorStatus
+      },
+      token
     });
+
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Login Error:', error);
+    res.status(500).json({ error: 'Server error during login.' });
   }
 });
 
-// Forgot password
-app.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
+// NEW: Redirect /login POST to /api/login for compatibility
+app.post('/login', (req, res) => {
+  res.redirect(307, '/api/login');  // 307 preserves POST method and body
+});
+
+// NEW: Admin statistics endpoint
+app.get('/api/admin/statistics', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const user = await User.findOne({ email });
+    const totalUsers = await User.countDocuments();
+    const students = await User.countDocuments({ role: 'student' });
+    const instructors = await User.countDocuments({ role: 'instructor', instructorStatus: 'approved' });
+    const pendingInstructors = await User.countDocuments({ role: 'instructor', instructorStatus: 'pending' });
+
+    const totalCourses = await Course.countDocuments();
+    const publishedCourses = await Course.countDocuments({ status: 'published' });
+    const totalEnrollments = await Enrollment.countDocuments();
+    const completedEnrollments = await Enrollment.countDocuments({ status: 'completed' });
+    const certificatesIssued = await Certificate.countDocuments();
+    const openQueries = await Query.countDocuments({ status: { $in: ['open', 'in-progress'] } });
+    const totalReviews = await Review.countDocuments();
+
+    const completionRate = totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0;
+
+    const stats = {
+      users: {
+        total: totalUsers,
+        students: students,
+        instructors: instructors,
+        pendingInstructors: pendingInstructors
+      },
+      courses: {
+        total: totalCourses,
+        published: publishedCourses,
+        enrollments: totalEnrollments,
+        completed: completedEnrollments,
+        completionRate: completionRate
+      },
+      certificates: certificatesIssued,
+      queries: {
+        open: openQueries
+      },
+      reviews: {
+        total: totalReviews
+      }
+    };
+
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching admin statistics:', error);
+    res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
+// NEW: Get all users with filtering
+app.get('/api/admin/users', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { role, status, page = 1, limit = 10 } = req.query;
+    
+    let query = {};
+    if (role) query.role = role;
+    if (status && role === 'instructor') query.instructorStatus = status;
+
+    const users = await User.find(query)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await User.countDocuments(query);
+
+    res.json({
+      users,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// NEW: Update instructor status (approve/reject)
+app.put('/api/admin/instructor-status', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { userId, status, rejectionReason } = req.body;
+
+    if (!userId || !status || !['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid request data' });
+    }
+
+    const updateData = { instructorStatus: status };
+    if (status === 'rejected' && rejectionReason) {
+      updateData.rejectionReason = rejectionReason;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    ).select('-password');
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const resetToken = generateResetToken();
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 3600000;
-    await user.save();
-
-    const resetLink = `http://localhost:5000/reset-password.html?token=${resetToken}`;
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Password Reset Link',
-      html: `
-        <p>You requested a password reset. Click the link below to reset your password:</p>
-        <a href="${resetLink}">Reset Password</a>
-        <p>If you did not request this, please ignore this email.</p>
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: 'Reset link sent to your email' });
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({ error: 'Failed to send reset link' });
-  }
-});
-
-// Reset password
-app.post('/reset-password', async (req, res) => {
-  const { token, newPassword, confirmPassword } = req.body;
-  
-  if (!token || !newPassword || !confirmPassword) {
-    return res.status(400).json({ error: 'All fields are required' });
-  }
-  
-  if (newPassword !== confirmPassword) {
-    return res.status(400).json({ error: 'Passwords do not match' });
-  }
-
-  try {
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid or expired token' });
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    user.resetPasswordToken = null;
-    user.resetPasswordExpires = null;
-    await user.save();
-
-    res.status(200).json({ message: 'Password reset successful' });
-  } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Update profile
-app.post('/update_profile', async (req, res) => {
-  const { email, username, password } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found." });
-    }
-
-    if (username) {
-      user.username = username;
-    }
-
-    if (password) {
-      user.password = await bcrypt.hash(password, 10);
-    }
-
-    await user.save();
-    res.json({ success: true, message: "Profile updated successfully!" });
-  } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
-// Get profile
-app.get('/api/profile', async (req, res) => {
-  const { email } = req.query;
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found." });
-    }
-
     res.json({
-      success: true,
-      user: {
-        email: user.email,
-        username: user.username,
-      },
+      message: `Instructor application ${status} successfully`,
+      user
     });
+
   } catch (error) {
-    console.error('Get profile error:', error);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error('Error updating instructor status:', error);
+    res.status(500).json({ error: 'Failed to update instructor status' });
   }
 });
 
-// Course management
-app.post('/api/courses', upload.fields([
-  { name: 'image', maxCount: 1 },
-  { name: 'finalAssignment', maxCount: 1 },
-  { name: 'quizzes', maxCount: 10 },
-]), async (req, res) => {
+// NEW: Get all instructors
+app.get('/api/admin/instructors', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const { name, description, duration, category, modules } = req.body;
+    const { status } = req.query;
     
-    if (!req.files['image'] || !req.files['finalAssignment']) {
-      return res.status(400).json({ error: 'Image and final assignment files are required' });
-    }
+    let query = { role: 'instructor' };
+    if (status) query.instructorStatus = status;
 
-    const image = `/uploads/${req.files['image'][0].filename}`;
-    let parsedModules;
-    
-    try {
-      parsedModules = JSON.parse(modules);
-    } catch (error) {
-      return res.status(400).json({ error: 'Invalid modules format' });
-    }
+    const instructors = await User.find(query)
+      .select('-password')
+      .sort({ createdAt: -1 });
 
-    const quizzes = [];
-    if (req.files['quizzes']) {
-      for (const file of req.files['quizzes']) {
-        const pdfBuffer = fs.readFileSync(file.path);
-        const questions = await extractQuestionsFromPDF(pdfBuffer);
-        quizzes.push({ qanda: questions });
-      }
-    }
-
-    const finalAssignmentBuffer = fs.readFileSync(req.files['finalAssignment'][0].path);
-    const finalExamQuestions = await extractQuestionsFromPDF(finalAssignmentBuffer);
-
-    const newCourse = new Course({
-      name,
-      description,
-      duration,
-      category,
-      image,
-      modules: parsedModules,
-      quizzes,
-      finalExam: { qanda: finalExamQuestions },
-    });
-
-    await newCourse.save();
-    res.status(201).json({ message: 'Course created successfully', course: newCourse });
+    res.json(instructors);
   } catch (error) {
-    console.error('Create course error:', error);
-    res.status(500).json({ error: 'Failed to create course' });
+    console.error('Error fetching instructors:', error);
+    res.status(500).json({ error: 'Failed to fetch instructors' });
   }
 });
 
-// Get all courses
+// NEW: Delete user (admin only)
+app.delete('/api/admin/users/:userId', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findByIdAndDelete(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// ==================== COURSE MANAGEMENT ENDPOINTS ====================
+
+// Get all courses (public endpoint with filtering)
 app.get('/api/courses', async (req, res) => {
   try {
-    const courses = await Course.find({}, 'name description duration image category createdAt');
-    res.status(200).json(courses);
+    const { category, level, instructor, search, page = 1, limit = 12 } = req.query;
+    
+    let query = { status: 'published' };
+    
+    if (category) query.category = category;
+    if (level) query.level = level;
+    if (instructor) query.instructor = instructor;
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { shortDescription: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const courses = await Course.find(query)
+      .populate('instructor', 'fullName')
+      .select('-modules -quizzes -finalExam')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await Course.countDocuments(query);
+
+    res.json({
+      courses,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
   } catch (error) {
-    console.error('Get courses error:', error);
+    console.error('Error fetching courses:', error);
     res.status(500).json({ error: 'Failed to fetch courses' });
   }
 });
 
-// Get specific course
-app.get('/api/courses/:name', async (req, res) => {
+// Get course details by ID
+app.get('/api/courses/:courseId', async (req, res) => {
   try {
-    const courseName = req.params.name;
-    const course = await Course.findOne({ name: courseName });
-
-    if (!course) {
-      return res.status(404).json({ message: 'Course not found' });
-    }
-
-    res.status(200).json(course);
-  } catch (error) {
-    console.error('Get course error:', error);
-    res.status(500).json({ error: 'Failed to fetch course' });
-  }
-});
-
-// Enrollment
-app.post('/api/enroll', async (req, res) => {
-  const { courseName, username } = req.body;
-
-  if (!courseName || !username) {
-    return res.status(400).json({ success: false, message: 'Course name and username are required' });
-  }
-
-  try {
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    const course = await Course.findOne({ name: courseName });
-    if (!course) {
-      return res.status(404).json({ success: false, message: 'Course not found' });
-    }
-
-    const existingEnrollment = await Enrollment.findOne({ courseName, username });
-    if (existingEnrollment) {
-      return res.status(400).json({ success: false, message: 'User already enrolled in this course' });
-    }
-
-    const newEnrollment = new Enrollment({
-      username,
-      email: user.email,
-      courseName,
-      totalModules: course.modules.length
-    });
-
-    await newEnrollment.save();
-
-    // Initialize module progress
-    for (let i = 0; i < course.modules.length; i++) {
-      const moduleProgress = new ModuleProgress({
-        username,
-        email: user.email,
-        courseName,
-        moduleIndex: i,
-        status: 'not-started',
-        completion: 0
+    const { courseId } = req.params;
+    
+    const course = await Course.findById(courseId)
+      .populate('instructor', 'fullName email')
+      .populate({
+        path: 'reviews',
+        populate: {
+          path: 'student',
+          select: 'fullName'
+        }
       });
-      await moduleProgress.save();
-    }
 
-    res.status(200).json({ success: true, message: 'Enrollment successful' });
-  } catch (error) {
-    console.error('Enrollment error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-// Check enrollment
-app.get('/api/check-enrollment', async (req, res) => {
-  const { username } = req.query;
-
-  if (!username) {
-    return res.status(400).json({ error: 'Username is required' });
-  }
-
-  try {
-    const enrollment = await Enrollment.findOne({ username });
-    res.status(200).json({ isEnrolled: !!enrollment });
-  } catch (error) {
-    console.error('Check enrollment error:', error);
-    res.status(500).json({ error: 'Failed to check enrollment status' });
-  }
-});
-
-// Quiz submission
-app.post('/api/submit-quiz', async (req, res) => {
-  const { username, courseName, quizType, moduleIndex, answers } = req.body;
-
-  try {
-    const existingAttempt = await QuizAttempt.findOne({
-      username,
-      courseName,
-      quizType,
-      ...(quizType === 'module' && { moduleIndex })
-    });
-
-    if (existingAttempt) {
-      return res.status(400).json({
-        error: 'You have already attempted this quiz/exam',
-        existingScore: existingAttempt.score,
-        existingPercentage: existingAttempt.percentage
-      });
-    }
-
-    const course = await Course.findOne({ name: courseName });
     if (!course) {
       return res.status(404).json({ error: 'Course not found' });
     }
 
-    const quiz = quizType === 'final' ? course.finalExam : course.quizzes[moduleIndex];
-    let score = 0;
-    const questionResults = [];
+    res.json(course);
+  } catch (error) {
+    console.error('Error fetching course details:', error);
+    res.status(500).json({ error: 'Failed to fetch course details' });
+  }
+});
 
-    quiz.qanda.forEach((question, index) => {
-      const userAnswer = answers[index];
-      const isCorrect = userAnswer === question.correctAnswer;
+// Create new course (instructor only)
+app.post('/api/courses', verifyToken, verifyInstructor, async (req, res) => {
+  try {
+    const courseData = {
+      ...req.body,
+      instructor: req.user.id,
+      instructorName: req.user.fullName || 'Unknown Instructor'
+    };
 
-      if (isCorrect) {
-        score++;
+    const course = new Course(courseData);
+    await course.save();
+
+    res.status(201).json({
+      message: 'Course created successfully!',
+      course
+    });
+  } catch (error) {
+    console.error('Error creating course:', error);
+    res.status(500).json({ error: 'Failed to create course' });
+  }
+});
+
+// Update course (instructor only - own courses)
+app.put('/api/courses/:courseId', verifyToken, verifyInstructor, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    const course = await Course.findOne({ _id: courseId, instructor: req.user.id });
+    
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found or access denied' });
+    }
+
+    Object.assign(course, req.body);
+    await course.save();
+
+    res.json({
+      message: 'Course updated successfully!',
+      course
+    });
+  } catch (error) {
+    console.error('Error updating course:', error);
+    res.status(500).json({ error: 'Failed to update course' });
+  }
+});
+
+// Get instructor's courses
+app.get('/api/instructor/courses', verifyToken, verifyInstructor, async (req, res) => {
+  try {
+    const courses = await Course.find({ instructor: req.user.id })
+      .sort({ createdAt: -1 });
+
+    res.json(courses);
+  } catch (error) {
+    console.error('Error fetching instructor courses:', error);
+    res.status(500).json({ error: 'Failed to fetch courses' });
+  }
+});
+
+// ==================== ENROLLMENT ENDPOINTS ====================
+
+// Enroll in a course
+app.post('/api/enroll', verifyToken, async (req, res) => {
+  try {
+    const { courseId } = req.body;
+    
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    const existingEnrollment = await Enrollment.findOne({
+      student: req.user.id,
+      course: courseId
+    });
+
+    if (existingEnrollment) {
+      return res.status(400).json({ error: 'Already enrolled in this course' });
+    }
+
+    const enrollment = new Enrollment({
+      student: req.user.id,
+      course: courseId,
+      progress: {
+        totalModules: course.modules.length,
+        totalLessons: course.modules.reduce((total, module) => total + module.lessons.length, 0)
       }
+    });
 
-      questionResults.push({
-        question: question.question,
-        userAnswer,
-        correctAnswer: question.correctAnswer,
-        options: question.options,
-        isCorrect,
-        wasAnswered: userAnswer !== null && userAnswer !== undefined
+    await enrollment.save();
+
+    // Update course enrollment count
+    course.enrollmentCount += 1;
+    await course.save();
+
+    res.status(201).json({
+      message: 'Successfully enrolled in course!',
+      enrollment
+    });
+  } catch (error) {
+    console.error('Error enrolling in course:', error);
+    res.status(500).json({ error: 'Failed to enroll in course' });
+  }
+});
+
+// Get student's enrollments
+app.get('/api/my-courses', verifyToken, async (req, res) => {
+  try {
+    const enrollments = await Enrollment.find({ student: req.user.id })
+      .populate('course', 'name shortDescription image instructor duration level')
+      .populate('course.instructor', 'fullName')
+      .sort({ enrolledAt: -1 });
+
+    res.json(enrollments);
+  } catch (error) {
+    console.error('Error fetching student courses:', error);
+    res.status(500).json({ error: 'Failed to fetch enrolled courses' });
+  }
+});
+
+// Update lesson progress
+app.put('/api/progress/lesson', verifyToken, async (req, res) => {
+  try {
+    const { courseId, moduleId, lessonId, completed, timeSpent } = req.body;
+    
+    const enrollment = await Enrollment.findOne({
+      student: req.user.id,
+      course: courseId
+    });
+
+    if (!enrollment) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    // Find or create module progress
+    let moduleProgress = enrollment.progress.modules.find(m => m.moduleId.toString() === moduleId);
+    if (!moduleProgress) {
+      moduleProgress = {
+        moduleId: moduleId,
+        lessons: []
+      };
+      enrollment.progress.modules.push(moduleProgress);
+    }
+
+    // Find or create lesson progress
+    let lessonProgress = moduleProgress.lessons.find(l => l.lessonId.toString() === lessonId);
+    if (!lessonProgress) {
+      lessonProgress = {
+        lessonId: lessonId,
+        completed: false,
+        timeSpent: 0
+      };
+      moduleProgress.lessons.push(lessonProgress);
+    }
+
+    // Update lesson progress
+    lessonProgress.completed = completed;
+    lessonProgress.timeSpent += timeSpent || 0;
+    if (completed && !lessonProgress.completedAt) {
+      lessonProgress.completedAt = new Date();
+    }
+
+    // Update overall progress
+    const totalLessons = enrollment.progress.totalLessons;
+    const completedLessons = enrollment.progress.modules.reduce((total, module) => {
+      return total + module.lessons.filter(lesson => lesson.completed).length;
+    }, 0);
+
+    enrollment.progress.completedLessons = completedLessons;
+    enrollment.progress.overallProgress = Math.round((completedLessons / totalLessons) * 100);
+
+    await enrollment.save();
+
+    res.json({
+      message: 'Progress updated successfully',
+      progress: enrollment.progress
+    });
+  } catch (error) {
+    console.error('Error updating progress:', error);
+    res.status(500).json({ error: 'Failed to update progress' });
+  }
+});
+
+// ==================== REVIEW ENDPOINTS ====================
+
+// Submit course review
+app.post('/api/reviews', verifyToken, async (req, res) => {
+  try {
+    const { courseId, rating, title, comment, pros, cons, wouldRecommend } = req.body;
+    
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    const enrollment = await Enrollment.findOne({
+      student: req.user.id,
+      course: courseId
+    });
+
+    if (!enrollment) {
+      return res.status(400).json({ error: 'Must be enrolled to review this course' });
+    }
+
+    const existingReview = await Review.findOne({
+      student: req.user.id,
+      course: courseId
+    });
+
+    if (existingReview) {
+      return res.status(400).json({ error: 'You have already reviewed this course' });
+    }
+
+    const review = new Review({
+      student: req.user.id,
+      course: courseId,
+      instructor: course.instructor,
+      rating,
+      title,
+      comment,
+      pros: pros || [],
+      cons: cons || [],
+      wouldRecommend: wouldRecommend !== false,
+      verified: enrollment.status === 'completed'
+    });
+
+    await review.save();
+
+    // Update course rating
+    const allReviews = await Review.find({ course: courseId, status: 'approved' });
+    const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+    course.averageRating = totalRating / allReviews.length;
+    course.totalRatings = allReviews.length;
+    await course.save();
+
+    res.status(201).json({
+      message: 'Review submitted successfully!',
+      review
+    });
+  } catch (error) {
+    console.error('Error submitting review:', error);
+    res.status(500).json({ error: 'Failed to submit review' });
+  }
+});
+
+// Get course reviews
+app.get('/api/courses/:courseId/reviews', async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+    
+    const reviews = await Review.find({ course: courseId, status: 'approved' })
+      .populate('student', 'fullName')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await Review.countDocuments({ course: courseId, status: 'approved' });
+
+    res.json({
+      reviews,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.status(500).json({ error: 'Failed to fetch reviews' });
+  }
+});
+
+// ==================== CERTIFICATE ENDPOINTS ====================
+
+// Generate certificate for completed course
+app.post('/api/certificates/generate', verifyToken, async (req, res) => {
+  try {
+    const { courseId } = req.body;
+    
+    const enrollment = await Enrollment.findOne({
+      student: req.user.id,
+      course: courseId,
+      status: 'completed'
+    }).populate('course').populate('student');
+
+    if (!enrollment) {
+      return res.status(400).json({ error: 'Course not completed or enrollment not found' });
+    }
+
+    const existingCertificate = await Certificate.findOne({
+      student: req.user.id,
+      course: courseId
+    });
+
+    if (existingCertificate) {
+      return res.json({
+        message: 'Certificate already exists',
+        certificate: existingCertificate
       });
-    });
-
-    const totalQuestions = quiz.qanda.length;
-    const percentage = (score / totalQuestions) * 100;
-
-    const attempt = new QuizAttempt({
-      username,
-      courseName,
-      quizType,
-      ...(quizType === 'module' && { moduleIndex }),
-      score,
-      totalQuestions,
-      percentage,
-      questionResults
-    });
-
-    await attempt.save();
-
-    // Update module progress if it's a module quiz
-    if (quizType === 'module') {
-      await ModuleProgress.findOneAndUpdate(
-        { username, courseName, moduleIndex },
-        { status: 'completed', completion: 100 }
-      );
     }
 
-    // Update overall course progress
-    const user = await User.findOne({ username });
-    if (user) {
-      await updateCourseProgress(username, user.email, courseName);
-    }
-
-    res.status(200).json({
-      success: true,
-      score,
-      totalQuestions,
-      percentage,
-      questionResults
+    const certificate = new Certificate({
+      student: req.user.id,
+      course: courseId,
+      instructor: enrollment.course.instructor,
+      studentName: enrollment.student.fullName,
+      courseName: enrollment.course.name,
+      instructorName: enrollment.course.instructorName,
+      completionDate: enrollment.completedAt,
+      finalScore: enrollment.finalExamScore?.score || 100,
+      courseDuration: enrollment.course.duration,
+      skills: enrollment.course.learningOutcomes || [],
+      metadata: {
+        courseLevel: enrollment.course.level,
+        courseCategory: enrollment.course.category,
+        totalHours: enrollment.course.estimatedHours,
+        completionRate: enrollment.progress.overallProgress
+      }
     });
 
+    await certificate.save();
+
+    // Update enrollment
+    enrollment.certificateIssued = true;
+    enrollment.certificateIssuedAt = new Date();
+    await enrollment.save();
+
+    res.status(201).json({
+      message: 'Certificate generated successfully!',
+      certificate
+    });
   } catch (error) {
-    console.error('Submit quiz error:', error);
-    res.status(500).json({ error: 'Failed to submit quiz' });
+    console.error('Error generating certificate:', error);
+    res.status(500).json({ error: 'Failed to generate certificate' });
   }
 });
 
-// Check quiz attempt
-app.get('/api/check-attempt', async (req, res) => {
+// Get user's certificates
+app.get('/api/my-certificates', verifyToken, async (req, res) => {
   try {
-    const { username, courseName, quizType, moduleIndex } = req.query;
+    const certificates = await Certificate.find({ student: req.user.id })
+      .populate('course', 'name image')
+      .sort({ issuedDate: -1 });
 
-    if (!username || !courseName || !quizType) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required parameters'
-      });
-    }
-
-    const query = { username, courseName, quizType };
-    if (quizType === 'module' && moduleIndex !== undefined) {
-      query.moduleIndex = parseInt(moduleIndex);
-    }
-
-    const attempt = await QuizAttempt.findOne(query).sort({ submittedAt: -1 });
-    const attemptCount = await QuizAttempt.countDocuments(query);
-
-    res.status(200).json({
-      success: true,
-      hasAttempted: !!attempt,
-      attemptData: attempt || null,
-      attemptCount: attemptCount || 0
-    });
-
+    res.json(certificates);
   } catch (error) {
-    console.error('Check attempt error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
+    console.error('Error fetching certificates:', error);
+    res.status(500).json({ error: 'Failed to fetch certificates' });
   }
 });
 
-// Get quiz results
-app.get('/api/quiz-results', async (req, res) => {
-  const { username, courseName, quizType, moduleIndex } = req.query;
-
+// Verify certificate
+app.get('/api/certificates/verify/:certificateId', async (req, res) => {
   try {
-    const results = await QuizAttempt.find({
-      username,
-      courseName,
-      quizType,
-      ...(quizType === 'module' && { moduleIndex })
-    }).sort({ submittedAt: -1 });
+    const { certificateId } = req.params;
+    
+    const certificate = await Certificate.findOne({ certificateId })
+      .populate('student', 'fullName')
+      .populate('course', 'name')
+      .populate('instructor', 'fullName');
 
-    res.status(200).json(results);
+    if (!certificate) {
+      return res.status(404).json({ error: 'Certificate not found' });
+    }
+
+    if (certificate.status !== 'active') {
+      return res.status(400).json({ error: 'Certificate is not active' });
+    }
+
+    res.json({
+      valid: true,
+      certificate: {
+        id: certificate.certificateId,
+        studentName: certificate.studentName,
+        courseName: certificate.courseName,
+        instructorName: certificate.instructorName,
+        completionDate: certificate.completionDate,
+        issuedDate: certificate.issuedDate,
+        verificationCode: certificate.verificationCode
+      }
+    });
   } catch (error) {
-    console.error('Get quiz results error:', error);
-    res.status(500).json({ error: 'Failed to fetch quiz results' });
+    console.error('Error verifying certificate:', error);
+    res.status(500).json({ error: 'Failed to verify certificate' });
   }
 });
 
-// Progress tracking
-app.post('/api/update-module-progress', async (req, res) => {
-  const { username, courseName, moduleIndex, completion, status } = req.body;
+// ==================== QUERY/SUPPORT ENDPOINTS ====================
 
-  if (!username || !courseName || moduleIndex === undefined) {
-    return res.status(400).json({ error: 'Required fields missing' });
-  }
-
+// Submit support query
+app.post('/api/queries', verifyToken, async (req, res) => {
   try {
-    const user = await User.findOne({ username });
+    const { courseId, category, subject, description, priority } = req.body;
+    
+    let instructor = null;
+    if (courseId) {
+      const course = await Course.findById(courseId);
+      if (course) {
+        instructor = course.instructor;
+      }
+    }
+
+    const query = new Query({
+      student: req.user.id,
+      course: courseId || null,
+      instructor: instructor,
+      category,
+      subject,
+      description,
+      priority: priority || 'medium'
+    });
+
+    await query.save();
+
+    res.status(201).json({
+      message: 'Query submitted successfully!',
+      query
+    });
+  } catch (error) {
+    console.error('Error submitting query:', error);
+    res.status(500).json({ error: 'Failed to submit query' });
+  }
+});
+
+// Get user's queries
+app.get('/api/my-queries', verifyToken, async (req, res) => {
+  try {
+    const queries = await Query.find({ student: req.user.id })
+      .populate('course', 'name')
+      .sort({ createdAt: -1 });
+
+    res.json(queries);
+  } catch (error) {
+    console.error('Error fetching queries:', error);
+    res.status(500).json({ error: 'Failed to fetch queries' });
+  }
+});
+
+// ==================== USER PROFILE ENDPOINTS ====================
+
+// Get user profile
+app.get('/api/user/:username', verifyToken, async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    const user = await User.findOne({ fullName: username })
+      .select('-password');
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    let moduleProgress = await ModuleProgress.findOne({ username, courseName, moduleIndex });
-
-    if (moduleProgress) {
-      if (completion !== undefined) moduleProgress.completion = completion;
-      if (status) moduleProgress.status = status;
-      moduleProgress.lastAccessed = Date.now();
-      await moduleProgress.save();
-    } else {
-      moduleProgress = new ModuleProgress({
-        username,
-        email: user.email,
-        courseName,
-        moduleIndex,
-        completion: completion || 0,
-        status: status || 'not-started'
-      });
-      await moduleProgress.save();
-    }
-
-    await updateCourseProgress(username, user.email, courseName);
-
-    res.status(200).json({ success: true, moduleProgress });
+    res.json(user);
   } catch (error) {
-    console.error('Update module progress error:', error);
-    res.status(500).json({ error: 'Failed to update module progress' });
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Failed to fetch user profile' });
   }
 });
 
-// Get module progress
-app.get('/api/module-progress', async (req, res) => {
-  const { username, courseName, moduleIndex } = req.query;
-
-  if (!username || !courseName) {
-    return res.status(400).json({ error: 'Username and course name are required' });
-  }
-
+// Update user profile
+app.put('/api/update-profile', verifyToken, async (req, res) => {
   try {
-    let query = { username, courseName };
-    if (moduleIndex !== undefined) {
-      query.moduleIndex = moduleIndex;
+    const { username, fullName } = req.body;
+    
+    const user = await User.findOne({ fullName: username });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    const progress = await ModuleProgress.find(query).sort({ moduleIndex: 1 });
-    res.status(200).json(progress);
+    user.fullName = fullName;
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully!',
+      user: {
+        id: user._id,
+        username: user.fullName,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role
+      }
+    });
   } catch (error) {
-    console.error('Get module progress error:', error);
-    res.status(500).json({ error: 'Failed to fetch module progress' });
+    console.error('Error updating profile:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Change password
+app.put('/api/change-password', verifyToken, async (req, res) => {
+  try {
+    const { username, currentPassword, newPassword } = req.body;
+    
+    const user = await User.findOne({ fullName: username });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.json({ message: 'Password changed successfully!' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Failed to change password' });
   }
 });
 
 // Get student progress details
-app.get('/api/student-progress-details', async (req, res) => {
-  const { username, email } = req.query;
-
+app.get('/api/student-progress-details', verifyToken, async (req, res) => {
   try {
-    const enrollments = await Enrollment.find({ username });
-    const progressData = [];
-
-    for (const enrollment of enrollments) {
-      const course = await Course.findOne({ name: enrollment.courseName });
-      if (!course) continue;
-
-      const moduleProgress = await ModuleProgress.find({
-        username,
-        courseName: enrollment.courseName
-      }).sort({ moduleIndex: 1 });
-
-      const quizResults = await QuizAttempt.find({
-        username,
-        courseName: enrollment.courseName,
-        quizType: 'module'
-      }).sort({ moduleIndex: 1 });
-
-      const finalExamResult = await QuizAttempt.findOne({
-        username,
-        courseName: enrollment.courseName,
-        quizType: 'final'
-      });
-
-      const totalModules = course.modules.length;
-      let completedModules = 0;
-
-      const enhancedModuleProgress = course.modules.map((module, index) => {
-        const progressRecord = moduleProgress.find(mp => mp.moduleIndex === index) || {
-          status: 'not-started',
-          completion: 0
-        };
-
-        const quizAttempt = quizResults.find(q => q.moduleIndex === index);
-        if (quizAttempt) {
-          progressRecord.status = 'completed';
-          progressRecord.completion = 100;
-          completedModules++;
-        }
-
-        return {
-          moduleIndex: index,
-          moduleName: module.title || `Module ${index + 1}`,
-          status: progressRecord.status,
-          completion: progressRecord.completion,
-          lastAccessed: progressRecord.lastAccessed
-        };
-      });
-
-      let overallProgress = 0;
-      if (totalModules > 0) {
-        overallProgress += (completedModules / totalModules) * 60;
-      }
-      if (quizResults.length > 0) {
-        const quizAvg = quizResults.reduce((sum, q) => sum + q.percentage, 0) / quizResults.length;
-        overallProgress += (quizAvg / 100) * 20;
-      }
-      if (finalExamResult) {
-        overallProgress += (finalExamResult.percentage / 100) * 20;
-      }
-
-      const isCompleted = (completedModules === totalModules) && (finalExamResult !== null);
-
-      progressData.push({
-        courseName: enrollment.courseName,
-        courseDescription: course.description,
-        courseImage: course.image,
-        overallProgress: Math.round(overallProgress),
-        isCompleted,
-        completedAt: enrollment.completedAt,
-        totalModules,
-        completedModules,
-        moduleProgress: enhancedModuleProgress,
-        quizScores: quizResults.map(q => ({
-          moduleIndex: q.moduleIndex,
-          score: q.score,
-          totalQuestions: q.totalQuestions,
-          percentage: q.percentage
-        })),
-        finalExamScore: finalExamResult ? {
-          score: finalExamResult.score,
-          totalQuestions: finalExamResult.totalQuestions,
-          percentage: finalExamResult.percentage
-        } : null
-      });
-    }
-
-    res.status(200).json(progressData);
-  } catch (error) {
-    console.error('Get student progress details error:', error);
-    res.status(500).json({ error: 'Failed to fetch progress details' });
-  }
-});
-
-// Instructor routes
-app.get('/api/instructor-courses', async (req, res) => {
-  try {
-    const courses = await Course.find();
-    res.status(200).json(courses);
-  } catch (error) {
-    console.error('Get instructor courses error:', error);
-    res.status(500).json({ error: 'Failed to fetch instructor courses' });
-  }
-});
-
-app.get('/api/course-enrollments', async (req, res) => {
-  try {
-    const { courseName } = req.query;
-
-    if (!courseName) {
-      return res.status(400).json({ error: 'Course name is required' });
-    }
-
-    const enrollments = await Enrollment.find({ courseName });
-    res.status(200).json({
-      count: enrollments.length,
-      enrollments
-    });
-  } catch (error) {
-    console.error('Get course enrollments error:', error);
-    res.status(500).json({ error: 'Failed to fetch course enrollments' });
-  }
-});
-
-app.get('/api/student-progress', async (req, res) => {
-  try {
-    const { username, courseName } = req.query;
-
-    if (!username || !courseName) {
-      return res.status(400).json({ error: 'Username and course name are required' });
-    }
-
-    const course = await Course.findOne({ name: courseName });
-    if (!course) {
-      return res.status(404).json({ error: 'Course not found' });
-    }
-
-    const moduleProgress = await ModuleProgress.find({ username, courseName }).sort({ moduleIndex: 1 });
-    const quizResults = await QuizAttempt.find({
-      username,
-      courseName,
-      quizType: 'module'
-    }).sort({ moduleIndex: 1 });
-
-    const finalExamResult = await QuizAttempt.findOne({
-      username,
-      courseName,
-      quizType: 'final'
+    const { username, email } = req.query;
+    
+    const user = await User.findOne({ 
+      $or: [
+        { fullName: username },
+        { email: email }
+      ]
     });
 
-    let overallCompletion = 0;
-    if (course.modules && course.modules.length > 0) {
-      const moduleCompletionSum = moduleProgress.reduce((sum, progress) => sum + progress.completion, 0);
-      const moduleCompletionAvg = moduleCompletionSum / course.modules.length;
-      overallCompletion += moduleCompletionAvg * 0.6;
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    if (course.quizzes && course.quizzes.length > 0 && quizResults.length > 0) {
-      const quizScoreSum = quizResults.reduce((sum, quiz) => sum + quiz.percentage, 0);
-      const quizScoreAvg = quizScoreSum / course.quizzes.length;
-      overallCompletion += (quizScoreAvg / 100) * 20;
-    }
+    const enrollments = await Enrollment.find({ student: user._id })
+      .populate('course', 'name shortDescription image duration level')
+      .sort({ enrolledAt: -1 });
 
-    if (finalExamResult) {
-      overallCompletion += (finalExamResult.percentage / 100) * 20;
-    }
+    const progressData = enrollments.map(enrollment => ({
+      courseId: enrollment.course._id,
+      courseName: enrollment.course.name,
+      courseImage: enrollment.course.image,
+      enrolledAt: enrollment.enrolledAt,
+      progress: enrollment.progress.overallProgress,
+      status: enrollment.status,
+      isCompleted: enrollment.status === 'completed',
+      completedAt: enrollment.completedAt
+    }));
 
-    overallCompletion = Math.round(overallCompletion * 10) / 10;
-
-    const progressData = {
-      overallCompletion,
-      moduleProgress,
-      quizResults,
-      finalExamResult
-    };
-
-    res.status(200).json(progressData);
+    res.json(progressData);
   } catch (error) {
-    console.error('Get student progress error:', error);
+    console.error('Error fetching student progress:', error);
     res.status(500).json({ error: 'Failed to fetch student progress' });
   }
 });
 
-// Statistics
-app.get('/api/total-users', async (req, res) => {
+// Get user data for download
+app.get('/api/user-data/:username', verifyToken, async (req, res) => {
   try {
-    const count = await User.countDocuments();
-    res.status(200).json({ count });
+    const { username } = req.params;
+    
+    const user = await User.findOne({ fullName: username }).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const enrollments = await Enrollment.find({ student: user._id }).populate('course', 'name');
+    const certificates = await Certificate.find({ student: user._id }).populate('course', 'name');
+    const reviews = await Review.find({ student: user._id }).populate('course', 'name');
+    const queries = await Query.find({ student: user._id }).populate('course', 'name');
+
+    const userData = {
+      profile: user,
+      enrollments,
+      certificates,
+      reviews,
+      queries,
+      exportedAt: new Date()
+    };
+
+    res.json(userData);
   } catch (error) {
-    console.error('Get total users error:', error);
-    res.status(500).json({ error: 'Failed to fetch user count' });
+    console.error('Error fetching user data:', error);
+    res.status(500).json({ error: 'Failed to fetch user data' });
   }
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+// ==================== CATCH-ALL ROUTES FOR HTML FILES ====================
+
+// Handle direct access to HTML files without .html extension
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`LMS Server is running on http://localhost:${PORT}`);
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'register.html'));
 });
 
-module.exports = app;
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
 
+app.get('/admin-dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
+});
+
+app.get('/courses', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'courses.html'));
+});
+
+app.get('/profile', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
+});
+
+app.get('/my-courses', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'my-courses.html'));
+});
+
+app.get('/instructor-dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'instructor-dashboard.html'));
+});
+
+app.get('/instructor-create-course', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'instructor-create-course.html'));
+});
+
+app.get('/admin-users', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-users.html'));
+});
+
+app.get('/admin-courses', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-courses.html'));
+});
+
+app.get('/admin-instructors', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-instructors.html'));
+});
+
+app.get('/admin-reviews', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-reviews.html'));
+});
+
+app.get('/admin-reports', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-reports.html'));
+});
+
+// ==================== ERROR HANDLING MIDDLEWARE ====================
+
+// Handle 404 errors for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// Handle all other routes - redirect to index.html for SPA behavior
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Global 404 handler for unmatched routes (including non-GET methods)
+app.use((req, res, next) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log('Your frontend is available at http://localhost:5000/index.html');
+  console.log(`Admin credentials: ${ADMIN_CREDENTIALS.email} / ${ADMIN_CREDENTIALS.password}`);
+});

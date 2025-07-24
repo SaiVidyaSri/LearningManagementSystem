@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Management - LearNova Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .admin-nav {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        .admin-card {
+            border-left: 4px solid #dc3545;
+        }
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .status-approved { background: #28a745; color: white; }
+        .status-pending { background: #ffc107; color: #000; }
+        .status-flagged { background: #dc3545; color: white; }
+        .status-hidden { background: #6c757d; color: white; }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+        .filter-select {
+            min-width: 150px;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+            border: none;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+            border: none;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: none;
+        }
+        .star-rating {
+            color: #ffc107;
+            font-size: 1.2rem;
+        }
+        .review-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            padding: 1.5rem;
+            background: white;
+        }
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .review-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .review-content {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            line-height: 1.6;
+        }
+        .review-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #dee2e6;
+            background: white;
+            cursor: pointer;
+        }
+        .pagination button:hover {
+            background: #f8f9fa;
+        }
+        .pagination button.active {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 2rem;
+        }
+        .tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            border-bottom-color: #dc3545;
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .tab:hover {
+            background: #f8f9fa;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header class="header admin-nav">
+        <div class="container">
+            <nav class="nav">
+                <a href="admin-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
+                <ul class="nav-links">
+                    <li><a href="admin-dashboard.html">Dashboard</a></li>
+                    <li><a href="admin-users.html">Users</a></li>
+                    <li><a href="admin-courses.html">Courses</a></li>
+                    <li><a href="admin-instructors.html">Instructors</a></li>
+                    <li><a href="admin-reviews.html" class="active">Reviews</a></li>
+                    <li><a href="admin-reports.html">Reports</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome Admin!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card admin-card" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">Review Management ⭐</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Monitor course reviews, moderate content, and maintain quality standards.</p>
+                </div>
+            </section>
+
+            <!-- Review Statistics -->
+            <section style="margin-bottom: 3rem;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Review Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalReviews">0</div>
+                        <div class="stat-label">Total Reviews</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="averageRating">0.0</div>
+                        <div class="stat-label">Average Rating</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pendingReviews">0</div>
+                        <div class="stat-label">Pending Moderation</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="flaggedReviews">0</div>
+                        <div class="stat-label">Flagged Reviews</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Review Management Tabs -->
+            <section>
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('all')">All Reviews</div>
+                    <div class="tab" onclick="switchTab('pending')">Pending Moderation</div>
+                    <div class="tab" onclick="switchTab('flagged')">Flagged Reviews</div>
+                    <div class="tab" onclick="switchTab('hidden')">Hidden Reviews</div>
+                </div>
+
+                <!-- All Reviews Tab -->
+                <div id="all-tab" class="tab-content active">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="margin: 0; color: #333;">All Reviews</h3>
+                        <div style="display: flex; gap: 1rem;">
+                            <button onclick="exportReviews()" class="btn btn-outline">Export Reviews</button>
+                            <button onclick="refreshReviews()" class="btn btn-primary">Refresh</button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div class="filter-controls">
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="Search reviews by course or user..." class="form-control" onkeyup="filterReviews()">
+                        </div>
+                        <select id="ratingFilter" class="form-control filter-select" onchange="filterReviews()">
+                            <option value="">All Ratings</option>
+                            <option value="5">5 Stars</option>
+                            <option value="4">4 Stars</option>
+                            <option value="3">3 Stars</option>
+                            <option value="2">2 Stars</option>
+                            <option value="1">1 Star</option>
+                        </select>
+                        <select id="statusFilter" class="form-control filter-select" onchange="filterReviews()">
+                            <option value="">All Status</option>
+                            <option value="approved">Approved</option>
+                            <option value="pending">Pending</option>
+                            <option value="flagged">Flagged</option>
+                            <option value="hidden">Hidden</option>
+                        </select>
+                    </div>
+
+                    <div id="allReviewsContainer">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading reviews...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Moderation Tab -->
+                <div id="pending-tab" class="tab-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="margin: 0; color: #333;">Pending Moderation</h3>
+                        <button onclick="refreshReviews()" class="btn btn-primary">Refresh</button>
+                    </div>
+
+                    <div id="pendingReviewsContainer">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading pending reviews...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flagged Reviews Tab -->
+                <div id="flagged-tab" class="tab-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="margin: 0; color: #333;">Flagged Reviews</h3>
+                        <button onclick="refreshReviews()" class="btn btn-primary">Refresh</button>
+                    </div>
+
+                    <div id="flaggedReviewsContainer">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading flagged reviews...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden Reviews Tab -->
+                <div id="hidden-tab" class="tab-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="margin: 0; color: #333;">Hidden Reviews</h3>
+                        <button onclick="refreshReviews()" class="btn btn-primary">Refresh</button>
+                    </div>
+
+                    <div id="hiddenReviewsContainer">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading hidden reviews...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination">
+                    <!-- Pagination buttons will be inserted here -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Review Details Modal -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeReviewModal()">&times;</span>
+            <h2>Review Details</h2>
+            <div id="reviewDetails">
+                <!-- Review details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let allReviews = [];
+        let filteredReviews = [];
+        let currentTab = 'all';
+        let currentPage = 1;
+        let reviewsPerPage = 10;
+
+        // Check authentication and admin status
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            if (!user || !token) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            if (currentUser.role !== 'admin') {
+                showAlert('Access denied. Admin privileges required.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || 'Admin'}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Load review statistics
+        async function loadReviewStats() {
+            try {
+                const response = await fetch('/api/admin/statistics', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch statistics');
+                }
+
+                const stats = await response.json();
+
+                // Update UI with statistics
+                animateNumber('totalReviews', stats.reviews.total);
+                document.getElementById('averageRating').textContent = (stats.reviews.averageRating || 4.2).toFixed(1);
+                animateNumber('pendingReviews', Math.floor(stats.reviews.total * 0.1)); // Mock data
+                animateNumber('flaggedReviews', Math.floor(stats.reviews.total * 0.05)); // Mock data
+
+            } catch (error) {
+                console.error('Error loading review stats:', error);
+                showAlert('Unable to load review statistics.', 'error');
+            }
+        }
+
+        // Load reviews
+        async function loadReviews(status = 'all') {
+            try {
+                // For now, we'll use mock data since the review API might not be fully implemented
+                const mockReviews = generateMockReviews();
+                
+                let reviews = mockReviews;
+                if (status !== 'all') {
+                    reviews = mockReviews.filter(review => review.status === status);
+                }
+
+                if (status === 'all') {
+                    allReviews = reviews;
+                    filteredReviews = [...reviews];
+                }
+
+                displayReviews(reviews, status);
+
+            } catch (error) {
+                console.error('Error loading reviews:', error);
+                const containerId = getContainerId(status);
+                document.getElementById(containerId).innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #dc3545;">
+                        <p>Error loading reviews: ${error.message}</p>
+                        <button onclick="loadReviews('${status}')" class="btn btn-primary">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Generate mock reviews for demonstration
+        function generateMockReviews() {
+            const courses = ['JavaScript Fundamentals', 'React Development', 'Node.js Backend', 'Python for Beginners', 'Data Science Basics'];
+            const users = ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'David Brown'];
+            const statuses = ['approved', 'pending', 'flagged', 'hidden'];
+            const comments = [
+                'Excellent course! Very well structured and easy to follow.',
+                'Great instructor, learned a lot from this course.',
+                'Could be better, some parts were confusing.',
+                'Amazing content, highly recommended!',
+                'Good course but needs more practical examples.',
+                'Outstanding quality and presentation.',
+                'Not what I expected, disappointed.',
+                'Perfect for beginners, very helpful.',
+                'Instructor explains concepts very clearly.',
+                'Worth every penny, great value!'
+            ];
+
+            const reviews = [];
+            for (let i = 0; i < 50; i++) {
+                reviews.push({
+                    _id: `review_${i}`,
+                    courseTitle: courses[Math.floor(Math.random() * courses.length)],
+                    userName: users[Math.floor(Math.random() * users.length)],
+                    rating: Math.floor(Math.random() * 5) + 1,
+                    comment: comments[Math.floor(Math.random() * comments.length)],
+                    status: statuses[Math.floor(Math.random() * statuses.length)],
+                    createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    helpful: Math.floor(Math.random() * 20),
+                    reported: Math.random() > 0.8
+                });
+            }
+            return reviews;
+        }
+
+        // Get container ID based on status
+        function getContainerId(status) {
+            switch (status) {
+                case 'pending': return 'pendingReviewsContainer';
+                case 'flagged': return 'flaggedReviewsContainer';
+                case 'hidden': return 'hiddenReviewsContainer';
+                default: return 'allReviewsContainer';
+            }
+        }
+
+        // Display reviews
+        function displayReviews(reviews, status) {
+            const containerId = getContainerId(status);
+
+            if (reviews.length === 0) {
+                document.getElementById(containerId).innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">⭐</div>
+                        <p>No ${status === 'all' ? '' : status} reviews found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const startIndex = (currentPage - 1) * reviewsPerPage;
+            const endIndex = startIndex + reviewsPerPage;
+            const reviewsToShow = reviews.slice(startIndex, endIndex);
+
+            const reviewsHTML = reviewsToShow.map(review => `
+                <div class="review-card">
+                    <div class="review-header">
+                        <div class="review-meta">
+                            <div class="user-avatar">
+                                ${review.userName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <strong>${review.userName}</strong>
+                                <div style="font-size: 0.9rem; color: #666;">
+                                    ${review.courseTitle}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="star-rating">
+                                ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                            </div>
+                            <div style="font-size: 0.9rem; color: #666; margin-top: 0.25rem;">
+                                ${new Date(review.createdAt).toLocaleDateString()}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="review-content">
+                        ${review.comment}
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span class="status-badge status-${review.status}">
+                                ${review.status.charAt(0).toUpperCase() + review.status.slice(1)}
+                            </span>
+                            <span style="font-size: 0.9rem; color: #666;">
+                                ${review.helpful} helpful votes
+                            </span>
+                            ${review.reported ? '<span style="color: #dc3545; font-size: 0.9rem;">⚠️ Reported</span>' : ''}
+                        </div>
+                        
+                        <div class="review-actions">
+                            <button onclick="viewReview('${review._id}')" class="btn btn-sm btn-outline">View</button>
+                            ${review.status === 'pending' ? `
+                                <button onclick="approveReview('${review._id}')" class="btn btn-sm btn-success">Approve</button>
+                                <button onclick="flagReview('${review._id}')" class="btn btn-sm btn-warning">Flag</button>
+                            ` : ''}
+                            ${review.status === 'approved' ? `
+                                <button onclick="hideReview('${review._id}')" class="btn btn-sm btn-warning">Hide</button>
+                            ` : ''}
+                            ${review.status === 'flagged' ? `
+                                <button onclick="approveReview('${review._id}')" class="btn btn-sm btn-success">Approve</button>
+                                <button onclick="hideReview('${review._id}')" class="btn btn-sm btn-danger">Hide</button>
+                            ` : ''}
+                            ${review.status === 'hidden' ? `
+                                <button onclick="approveReview('${review._id}')" class="btn btn-sm btn-success">Restore</button>
+                            ` : ''}
+                            <button onclick="deleteReview('${review._id}')" class="btn btn-sm btn-danger">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById(containerId).innerHTML = reviewsHTML;
+            updatePagination(reviews.length);
+        }
+
+        // Switch tabs
+        function switchTab(tabName) {
+            // Update tab appearance
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            currentTab = tabName;
+            currentPage = 1;
+            loadReviews(tabName);
+        }
+
+        // Filter reviews
+        function filterReviews() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const ratingFilter = document.getElementById('ratingFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            filteredReviews = allReviews.filter(review => {
+                const matchesSearch = review.courseTitle.toLowerCase().includes(searchTerm) || 
+                                    review.userName.toLowerCase().includes(searchTerm) ||
+                                    review.comment.toLowerCase().includes(searchTerm);
+                const matchesRating = !ratingFilter || review.rating.toString() === ratingFilter;
+                const matchesStatus = !statusFilter || review.status === statusFilter;
+
+                return matchesSearch && matchesRating && matchesStatus;
+            });
+
+            currentPage = 1;
+            displayReviews(filteredReviews, 'all');
+        }
+
+        // Update pagination
+        function updatePagination(totalReviews) {
+            const totalPages = Math.ceil(totalReviews / reviewsPerPage);
+            const paginationContainer = document.getElementById('pagination');
+
+            if (totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = `
+                <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage || i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    paginationHTML += `
+                        <button onclick="changePage(${i})" ${i === currentPage ? 'class="active"' : ''}>${i}</button>
+                    `;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    paginationHTML += '<span>...</span>';
+                }
+            }
+
+            paginationHTML += `
+                <button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+            `;
+
+            paginationContainer.innerHTML = paginationHTML;
+        }
+
+        // Change page
+        function changePage(page) {
+            const totalReviews = currentTab === 'all' ? filteredReviews.length : 
+                               allReviews.filter(r => r.status === currentTab).length;
+            const totalPages = Math.ceil(totalReviews / reviewsPerPage);
+            
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                if (currentTab === 'all') {
+                    displayReviews(filteredReviews, 'all');
+                } else {
+                    loadReviews(currentTab);
+                }
+            }
+        }
+
+        // View review details
+        function viewReview(reviewId) {
+            const review = allReviews.find(r => r._id === reviewId);
+            if (!review) {
+                showAlert('Review not found', 'error');
+                return;
+            }
+
+            document.getElementById('reviewDetails').innerHTML = `
+                <div style="margin-bottom: 2rem;">
+                    <div class="review-meta" style="margin-bottom: 1rem;">
+                        <div class="user-avatar" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                            ${review.userName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <h4 style="margin: 0;">${review.userName}</h4>
+                            <p style="margin: 0; color: #666;">${review.courseTitle}</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div class="star-rating" style="font-size: 1.5rem;">
+                            ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                        </div>
+                        <span class="status-badge status-${review.status}">
+                            ${review.status.charAt(0).toUpperCase() + review.status.slice(1)}
+                        </span>
+                    </div>
+
+                    <div class="review-content" style="margin: 1.5rem 0;">
+                        ${review.comment}
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; font-size: 0.9rem; color: #666;">
+                        <div><strong>Posted:</strong> ${new Date(review.createdAt).toLocaleDateString()}</div>
+                        <div><strong>Helpful votes:</strong> ${review.helpful}</div>
+                        <div><strong>Reported:</strong> ${review.reported ? 'Yes' : 'No'}</div>
+                        <div><strong>Rating:</strong> ${review.rating}/5 stars</div>
+                    </div>
+
+                    <div style="text-align: right; margin-top: 2rem;">
+                        ${review.status === 'pending' ? `
+                            <button onclick="approveReview('${review._id}')" class="btn btn-success" style="margin-right: 1rem;">Approve</button>
+                            <button onclick="flagReview('${review._id}')" class="btn btn-warning" style="margin-right: 1rem;">Flag</button>
+                        ` : ''}
+                        ${review.status === 'approved' ? `
+                            <button onclick="hideReview('${review._id}')" class="btn btn-warning" style="margin-right: 1rem;">Hide</button>
+                        ` : ''}
+                        ${review.status === 'flagged' ? `
+                            <button onclick="approveReview('${review._id}')" class="btn btn-success" style="margin-right: 1rem;">Approve</button>
+                            <button onclick="hideReview('${review._id}')" class="btn btn-warning" style="margin-right: 1rem;">Hide</button>
+                        ` : ''}
+                        ${review.status === 'hidden' ? `
+                            <button onclick="approveReview('${review._id}')" class="btn btn-success" style="margin-right: 1rem;">Restore</button>
+                        ` : ''}
+                        <button onclick="deleteReview('${review._id}')" class="btn btn-danger">Delete</button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('reviewModal').style.display = 'block';
+        }
+
+        // Review moderation functions
+        async function approveReview(reviewId) {
+            try {
+                // Mock API call - replace with actual API
+                showAlert('Review approved successfully!', 'success');
+                updateReviewStatus(reviewId, 'approved');
+                closeReviewModal();
+                refreshReviews();
+            } catch (error) {
+                console.error('Error approving review:', error);
+                showAlert('Failed to approve review', 'error');
+            }
+        }
+
+        async function flagReview(reviewId) {
+            try {
+                // Mock API call - replace with actual API
+                showAlert('Review flagged for review', 'success');
+                updateReviewStatus(reviewId, 'flagged');
+                closeReviewModal();
+                refreshReviews();
+            } catch (error) {
+                console.error('Error flagging review:', error);
+                showAlert('Failed to flag review', 'error');
+            }
+        }
+
+        async function hideReview(reviewId) {
+            try {
+                // Mock API call - replace with actual API
+                showAlert('Review hidden successfully', 'success');
+                updateReviewStatus(reviewId, 'hidden');
+                closeReviewModal();
+                refreshReviews();
+            } catch (error) {
+                console.error('Error hiding review:', error);
+                showAlert('Failed to hide review', 'error');
+            }
+        }
+
+        async function deleteReview(reviewId) {
+            if (!confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                // Mock API call - replace with actual API
+                showAlert('Review deleted successfully', 'success');
+                // Remove from local data
+                allReviews = allReviews.filter(r => r._id !== reviewId);
+                filteredReviews = filteredReviews.filter(r => r._id !== reviewId);
+                closeReviewModal();
+                refreshReviews();
+            } catch (error) {
+                console.error('Error deleting review:', error);
+                showAlert('Failed to delete review', 'error');
+            }
+        }
+
+        // Update review status in local data
+        function updateReviewStatus(reviewId, newStatus) {
+            const review = allReviews.find(r => r._id === reviewId);
+            if (review) {
+                review.status = newStatus;
+            }
+            const filteredReview = filteredReviews.find(r => r._id === reviewId);
+            if (filteredReview) {
+                filteredReview.status = newStatus;
+            }
+        }
+
+        // Export reviews
+        function exportReviews() {
+            const csvContent = "data:text/csv;charset=utf-8," + 
+                "Course,User,Rating,Comment,Status,Date,Helpful\n" +
+                filteredReviews.map(review => 
+                    `"${review.courseTitle}","${review.userName}","${review.rating}","${review.comment.replace(/"/g, '""')}","${review.status}","${new Date(review.createdAt).toLocaleDateString()}","${review.helpful}"`
+                ).join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `learnova_reviews_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Refresh reviews
+        function refreshReviews() {
+            loadReviewStats();
+            loadReviews(currentTab);
+            showAlert('Reviews refreshed successfully!', 'success');
+        }
+
+        // Close modal
+        function closeReviewModal() {
+            document.getElementById('reviewModal').style.display = 'none';
+        }
+
+        // Animate number counting
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const duration = 1500;
+            const steps = 30;
+            const increment = targetNumber / steps;
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetNumber) {
+                    current = targetNumber;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current);
+            }, duration / steps);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            alertDiv.style.padding = '1rem';
+            alertDiv.style.borderRadius = '8px';
+            alertDiv.style.color = 'white';
+            alertDiv.style.background = type === 'success' ? '#28a745' : '#dc3545';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const reviewModal = document.getElementById('reviewModal');
+            
+            if (event.target === reviewModal) {
+                closeReviewModal();
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadReviewStats();
+                loadReviews('all');
+            }
+        });
+    </script>
+</body>
+</html>
+

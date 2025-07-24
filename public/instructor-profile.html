@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Profile - LearNova</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .instructor-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .instructor-card {
+            border-left: 4px solid #667eea;
+        }
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 0 auto 1.5rem auto;
+            border: 4px solid rgba(255,255,255,0.3);
+        }
+        .profile-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .profile-section h3 {
+            margin-bottom: 1.5rem;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        .skill-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .skill-tag {
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .skill-tag .remove-skill {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .skill-input {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .skill-input input {
+            flex: 1;
+        }
+        .add-skill-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e1e5e9;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .achievement-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin: 0.25rem;
+        }
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .social-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+        }
+        .social-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e7f3ff;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e1e5e9;
+            margin-bottom: 2rem;
+        }
+        .tab {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header class="header instructor-nav">
+        <div class="container">
+            <nav class="nav">
+                <a href="instructor-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
+                <ul class="nav-links">
+                    <li><a href="instructor-dashboard.html">Dashboard</a></li>
+                    <li><a href="instructor-courses.html">My Courses</a></li>
+                    <li><a href="instructor-create-course.html">Create Course</a></li>
+                    <li><a href="instructor-students.html">Students</a></li>
+                    <li><a href="instructor-queries.html">Q&A</a></li>
+                    <li><a href="instructor-profile.html" class="active">Profile</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Profile Header -->
+            <section class="profile-header">
+                <div class="profile-avatar" id="profileAvatar">
+                    👨‍🏫
+                </div>
+                <h1 id="profileName">Instructor Name</h1>
+                <p id="profileTitle" style="opacity: 0.9; font-size: 1.1rem;">Course Instructor</p>
+                <div style="margin-top: 1rem;">
+                    <span id="profileRating" style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 20px;">
+                        ⭐ 4.8 Rating
+                    </span>
+                </div>
+            </section>
+
+            <!-- Profile Statistics -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalCourses">0</div>
+                    <div class="stat-label">Courses Created</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalStudents">0</div>
+                    <div class="stat-label">Students Taught</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalReviews">0</div>
+                    <div class="stat-label">Reviews Received</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="joinedDate">2025</div>
+                    <div class="stat-label">Member Since</div>
+                </div>
+            </section>
+
+            <!-- Profile Tabs -->
+            <section class="tabs">
+                <button class="tab active" onclick="switchTab('personal')">Personal Info</button>
+                <button class="tab" onclick="switchTab('professional')">Professional</button>
+                <button class="tab" onclick="switchTab('social')">Social & Links</button>
+                <button class="tab" onclick="switchTab('achievements')">Achievements</button>
+            </section>
+
+            <!-- Personal Information Tab -->
+            <div class="tab-content active" id="personalTab">
+                <div class="profile-section">
+                    <h3>👤 Personal Information</h3>
+                    <form id="personalInfoForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="fullName">Full Name</label>
+                                <input type="text" id="fullName" placeholder="Enter your full name">
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email Address</label>
+                                <input type="email" id="email" placeholder="your.email@example.com" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone Number</label>
+                                <input type="tel" id="phone" placeholder="+1 (555) 123-4567">
+                            </div>
+                            <div class="form-group">
+                                <label for="location">Location</label>
+                                <input type="text" id="location" placeholder="City, Country">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="bio">Bio</label>
+                            <textarea id="bio" placeholder="Tell students about yourself, your background, and teaching philosophy..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="profileImage">Profile Image</label>
+                            <div class="upload-area" onclick="document.getElementById('imageUpload').click()">
+                                <div style="font-size: 2rem; margin-bottom: 1rem;">📷</div>
+                                <p>Click to upload or drag and drop your profile image</p>
+                                <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">Recommended: 400x400px, max 2MB</p>
+                            </div>
+                            <input type="file" id="imageUpload" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Save Personal Info</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Professional Information Tab -->
+            <div class="tab-content" id="professionalTab">
+                <div class="profile-section">
+                    <h3>💼 Professional Information</h3>
+                    <form id="professionalInfoForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="jobTitle">Current Job Title</label>
+                                <input type="text" id="jobTitle" placeholder="e.g., Senior Software Engineer">
+                            </div>
+                            <div class="form-group">
+                                <label for="company">Company/Organization</label>
+                                <input type="text" id="company" placeholder="e.g., Tech Corp Inc.">
+                            </div>
+                            <div class="form-group">
+                                <label for="experience">Years of Experience</label>
+                                <select id="experience">
+                                    <option value="">Select experience</option>
+                                    <option value="0-1">0-1 years</option>
+                                    <option value="2-5">2-5 years</option>
+                                    <option value="6-10">6-10 years</option>
+                                    <option value="11-15">11-15 years</option>
+                                    <option value="16+">16+ years</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="education">Highest Education</label>
+                                <select id="education">
+                                    <option value="">Select education level</option>
+                                    <option value="high-school">High School</option>
+                                    <option value="associate">Associate Degree</option>
+                                    <option value="bachelor">Bachelor's Degree</option>
+                                    <option value="master">Master's Degree</option>
+                                    <option value="phd">PhD</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expertise">Areas of Expertise</label>
+                            <div class="skill-tags" id="expertiseTags">
+                                <!-- Skills will be added here -->
+                            </div>
+                            <div class="skill-input">
+                                <input type="text" id="expertiseInput" placeholder="Add an area of expertise">
+                                <button type="button" class="add-skill-btn" onclick="addSkill('expertise')">Add</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="teachingExperience">Teaching Experience</label>
+                            <textarea id="teachingExperience" placeholder="Describe your teaching background, certifications, and experience..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="achievements">Professional Achievements</label>
+                            <textarea id="achievements" placeholder="List your key professional achievements, awards, and recognitions..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Save Professional Info</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Social & Links Tab -->
+            <div class="tab-content" id="socialTab">
+                <div class="profile-section">
+                    <h3>🌐 Social Media & Links</h3>
+                    <form id="socialLinksForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="website">Personal Website</label>
+                                <input type="url" id="website" placeholder="https://yourwebsite.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="linkedin">LinkedIn Profile</label>
+                                <input type="url" id="linkedin" placeholder="https://linkedin.com/in/yourprofile">
+                            </div>
+                            <div class="form-group">
+                                <label for="twitter">Twitter/X Profile</label>
+                                <input type="url" id="twitter" placeholder="https://twitter.com/yourusername">
+                            </div>
+                            <div class="form-group">
+                                <label for="github">GitHub Profile</label>
+                                <input type="url" id="github" placeholder="https://github.com/yourusername">
+                            </div>
+                            <div class="form-group">
+                                <label for="youtube">YouTube Channel</label>
+                                <input type="url" id="youtube" placeholder="https://youtube.com/c/yourchannel">
+                            </div>
+                            <div class="form-group">
+                                <label for="portfolio">Portfolio</label>
+                                <input type="url" id="portfolio" placeholder="https://yourportfolio.com">
+                            </div>
+                        </div>
+
+                        <div style="margin: 2rem 0;">
+                            <h4 style="margin-bottom: 1rem; color: #333;">Preview Links</h4>
+                            <div class="social-links" id="socialLinksPreview">
+                                <!-- Social links preview will appear here -->
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Save Social Links</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Achievements Tab -->
+            <div class="tab-content" id="achievementsTab">
+                <div class="profile-section">
+                    <h3>🏆 Achievements & Badges</h3>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: #333;">Earned Badges</h4>
+                        <div id="earnedBadges">
+                            <!-- Earned badges will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: #333;">Teaching Milestones</h4>
+                        <div id="teachingMilestones">
+                            <!-- Teaching milestones will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 style="margin-bottom: 1rem; color: #333;">Certifications</h4>
+                        <form id="certificationsForm">
+                            <div id="certificationsContainer">
+                                <!-- Certifications will be added here -->
+                            </div>
+                            <button type="button" class="btn btn-outline" onclick="addCertification()">➕ Add Certification</button>
+                            <button type="submit" class="btn btn-primary" style="margin-left: 1rem;">Save Certifications</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let expertiseSkills = [];
+        let certifications = [];
+
+        // Check authentication and instructor status
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            if (!user || !token) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            if (currentUser.role !== 'instructor') {
+                showAlert('Access denied. Instructor privileges required.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || currentUser.username}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Load instructor profile
+        async function loadProfile() {
+            try {
+                const response = await fetch('/api/instructor/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch profile');
+                }
+
+                const profile = await response.json();
+                populateProfile(profile);
+                loadStatistics();
+                loadAchievements();
+                
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                showAlert('Failed to load profile. Please try again.', 'error');
+            }
+        }
+
+        // Populate profile data
+        function populateProfile(profile) {
+            // Header information
+            document.getElementById('profileName').textContent = profile.fullName || profile.username;
+            document.getElementById('profileTitle').textContent = profile.jobTitle || 'Course Instructor';
+            document.getElementById('profileRating').textContent = `⭐ ${profile.averageRating || 0} Rating`;
+            
+            // Profile avatar
+            const avatar = document.getElementById('profileAvatar');
+            if (profile.profileImage) {
+                avatar.innerHTML = `<img src="${profile.profileImage}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            } else {
+                const initials = profile.fullName ? profile.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : profile.username[0].toUpperCase();
+                avatar.textContent = initials;
+            }
+
+            // Personal information
+            document.getElementById('fullName').value = profile.fullName || '';
+            document.getElementById('email').value = profile.email || '';
+            document.getElementById('phone').value = profile.phone || '';
+            document.getElementById('location').value = profile.location || '';
+            document.getElementById('bio').value = profile.bio || '';
+
+            // Professional information
+            document.getElementById('jobTitle').value = profile.jobTitle || '';
+            document.getElementById('company').value = profile.company || '';
+            document.getElementById('experience').value = profile.experience || '';
+            document.getElementById('education').value = profile.education || '';
+            document.getElementById('teachingExperience').value = profile.teachingExperience || '';
+            document.getElementById('achievements').value = profile.achievements || '';
+
+            // Expertise skills
+            expertiseSkills = profile.expertise || [];
+            updateSkillTags('expertise');
+
+            // Social links
+            document.getElementById('website').value = profile.socialLinks?.website || '';
+            document.getElementById('linkedin').value = profile.socialLinks?.linkedin || '';
+            document.getElementById('twitter').value = profile.socialLinks?.twitter || '';
+            document.getElementById('github').value = profile.socialLinks?.github || '';
+            document.getElementById('youtube').value = profile.socialLinks?.youtube || '';
+            document.getElementById('portfolio').value = profile.socialLinks?.portfolio || '';
+            updateSocialLinksPreview();
+
+            // Certifications
+            certifications = profile.certifications || [];
+            updateCertifications();
+        }
+
+        // Load statistics
+        async function loadStatistics() {
+            try {
+                const response = await fetch('/api/instructor/statistics', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch statistics');
+                }
+
+                const stats = await response.json();
+                
+                animateNumber('totalCourses', stats.totalCourses || 0);
+                animateNumber('totalStudents', stats.totalStudents || 0);
+                animateNumber('totalReviews', stats.totalReviews || 0);
+                
+                const joinedYear = new Date(currentUser.createdAt).getFullYear();
+                document.getElementById('joinedDate').textContent = joinedYear;
+                
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        // Load achievements
+        async function loadAchievements() {
+            try {
+                const response = await fetch('/api/instructor/achievements', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch achievements');
+                }
+
+                const achievements = await response.json();
+                displayAchievements(achievements);
+                
+            } catch (error) {
+                console.error('Error loading achievements:', error);
+            }
+        }
+
+        // Display achievements
+        function displayAchievements(achievements) {
+            const earnedBadges = document.getElementById('earnedBadges');
+            const milestones = document.getElementById('teachingMilestones');
+
+            // Display badges
+            if (achievements.badges && achievements.badges.length > 0) {
+                earnedBadges.innerHTML = achievements.badges.map(badge => `
+                    <div class="achievement-badge">
+                        ${badge.icon} ${badge.name}
+                    </div>
+                `).join('');
+            } else {
+                earnedBadges.innerHTML = '<p style="color: #666;">No badges earned yet. Keep teaching to unlock achievements!</p>';
+            }
+
+            // Display milestones
+            if (achievements.milestones && achievements.milestones.length > 0) {
+                milestones.innerHTML = achievements.milestones.map(milestone => `
+                    <div class="achievement-badge">
+                        🎯 ${milestone.title}
+                    </div>
+                `).join('');
+            } else {
+                milestones.innerHTML = '<p style="color: #666;">Milestones will appear as you reach teaching goals!</p>';
+            }
+        }
+
+        // Switch tabs
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}Tab`).classList.add('active');
+        }
+
+        // Add skill
+        function addSkill(type) {
+            const input = document.getElementById(`${type}Input`);
+            const skill = input.value.trim();
+            
+            if (skill && !expertiseSkills.includes(skill)) {
+                expertiseSkills.push(skill);
+                updateSkillTags(type);
+                input.value = '';
+            }
+        }
+
+        // Remove skill
+        function removeSkill(type, skill) {
+            if (type === 'expertise') {
+                expertiseSkills = expertiseSkills.filter(s => s !== skill);
+                updateSkillTags(type);
+            }
+        }
+
+        // Update skill tags
+        function updateSkillTags(type) {
+            const container = document.getElementById(`${type}Tags`);
+            const skills = type === 'expertise' ? expertiseSkills : [];
+            
+            container.innerHTML = skills.map(skill => `
+                <div class="skill-tag">
+                    ${skill}
+                    <span class="remove-skill" onclick="removeSkill('${type}', '${skill}')">&times;</span>
+                </div>
+            `).join('');
+        }
+
+        // Update social links preview
+        function updateSocialLinksPreview() {
+            const preview = document.getElementById('socialLinksPreview');
+            const links = [
+                { id: 'website', icon: '🌐', label: 'Website' },
+                { id: 'linkedin', icon: '💼', label: 'LinkedIn' },
+                { id: 'twitter', icon: '🐦', label: 'Twitter' },
+                { id: 'github', icon: '💻', label: 'GitHub' },
+                { id: 'youtube', icon: '📺', label: 'YouTube' },
+                { id: 'portfolio', icon: '🎨', label: 'Portfolio' }
+            ];
+
+            const activeLinks = links.filter(link => {
+                const value = document.getElementById(link.id).value.trim();
+                return value !== '';
+            });
+
+            if (activeLinks.length > 0) {
+                preview.innerHTML = activeLinks.map(link => {
+                    const url = document.getElementById(link.id).value;
+                    return `
+                        <a href="${url}" target="_blank" class="social-link">
+                            ${link.icon} ${link.label}
+                        </a>
+                    `;
+                }).join('');
+            } else {
+                preview.innerHTML = '<p style="color: #666;">Add social links above to see preview</p>';
+            }
+        }
+
+        // Add certification
+        function addCertification() {
+            const container = document.getElementById('certificationsContainer');
+            const certId = Date.now();
+            
+            const certHtml = `
+                <div class="form-grid" data-cert-id="${certId}" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label>Certification Name</label>
+                        <input type="text" placeholder="e.g., AWS Certified Solutions Architect">
+                    </div>
+                    <div class="form-group">
+                        <label>Issuing Organization</label>
+                        <input type="text" placeholder="e.g., Amazon Web Services">
+                    </div>
+                    <div class="form-group">
+                        <label>Issue Date</label>
+                        <input type="date">
+                    </div>
+                    <div class="form-group">
+                        <label>Expiry Date (Optional)</label>
+                        <input type="date">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Credential URL (Optional)</label>
+                        <input type="url" placeholder="https://credential-url.com">
+                    </div>
+                    <div style="grid-column: 1 / -1; text-align: right;">
+                        <button type="button" class="btn btn-outline" onclick="removeCertification(${certId})" style="background: #dc3545; color: white;">Remove</button>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', certHtml);
+        }
+
+        // Remove certification
+        function removeCertification(certId) {
+            document.querySelector(`[data-cert-id="${certId}"]`).remove();
+        }
+
+        // Update certifications display
+        function updateCertifications() {
+            const container = document.getElementById('certificationsContainer');
+            container.innerHTML = '';
+            
+            certifications.forEach((cert, index) => {
+                const certHtml = `
+                    <div class="form-grid" data-cert-index="${index}" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label>Certification Name</label>
+                            <input type="text" value="${cert.name || ''}" placeholder="e.g., AWS Certified Solutions Architect">
+                        </div>
+                        <div class="form-group">
+                            <label>Issuing Organization</label>
+                            <input type="text" value="${cert.organization || ''}" placeholder="e.g., Amazon Web Services">
+                        </div>
+                        <div class="form-group">
+                            <label>Issue Date</label>
+                            <input type="date" value="${cert.issueDate || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label>Expiry Date (Optional)</label>
+                            <input type="date" value="${cert.expiryDate || ''}">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Credential URL (Optional)</label>
+                            <input type="url" value="${cert.credentialUrl || ''}" placeholder="https://credential-url.com">
+                        </div>
+                        <div style="grid-column: 1 / -1; text-align: right;">
+                            <button type="button" class="btn btn-outline" onclick="removeCertificationByIndex(${index})" style="background: #dc3545; color: white;">Remove</button>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', certHtml);
+            });
+        }
+
+        // Handle image upload
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.size > 2 * 1024 * 1024) {
+                    showAlert('Image size should be less than 2MB', 'error');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const avatar = document.getElementById('profileAvatar');
+                    avatar.innerHTML = `<img src="${e.target.result}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Form submissions
+        document.getElementById('personalInfoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveProfile('personal');
+        });
+
+        document.getElementById('professionalInfoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveProfile('professional');
+        });
+
+        document.getElementById('socialLinksForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveProfile('social');
+        });
+
+        document.getElementById('certificationsForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveProfile('certifications');
+        });
+
+        // Save profile
+        async function saveProfile(section) {
+            try {
+                let data = {};
+                
+                switch (section) {
+                    case 'personal':
+                        data = {
+                            fullName: document.getElementById('fullName').value.trim(),
+                            phone: document.getElementById('phone').value.trim(),
+                            location: document.getElementById('location').value.trim(),
+                            bio: document.getElementById('bio').value.trim()
+                        };
+                        break;
+                        
+                    case 'professional':
+                        data = {
+                            jobTitle: document.getElementById('jobTitle').value.trim(),
+                            company: document.getElementById('company').value.trim(),
+                            experience: document.getElementById('experience').value,
+                            education: document.getElementById('education').value,
+                            expertise: expertiseSkills,
+                            teachingExperience: document.getElementById('teachingExperience').value.trim(),
+                            achievements: document.getElementById('achievements').value.trim()
+                        };
+                        break;
+                        
+                    case 'social':
+                        data = {
+                            socialLinks: {
+                                website: document.getElementById('website').value.trim(),
+                                linkedin: document.getElementById('linkedin').value.trim(),
+                                twitter: document.getElementById('twitter').value.trim(),
+                                github: document.getElementById('github').value.trim(),
+                                youtube: document.getElementById('youtube').value.trim(),
+                                portfolio: document.getElementById('portfolio').value.trim()
+                            }
+                        };
+                        break;
+                        
+                    case 'certifications':
+                        // Collect certifications from form
+                        const certElements = document.querySelectorAll('[data-cert-id], [data-cert-index]');
+                        const certs = Array.from(certElements).map(element => {
+                            const inputs = element.querySelectorAll('input');
+                            return {
+                                name: inputs[0].value.trim(),
+                                organization: inputs[1].value.trim(),
+                                issueDate: inputs[2].value,
+                                expiryDate: inputs[3].value,
+                                credentialUrl: inputs[4].value.trim()
+                            };
+                        }).filter(cert => cert.name && cert.organization);
+                        
+                        data = { certifications: certs };
+                        break;
+                }
+
+                const response = await fetch('/api/instructor/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save profile');
+                }
+
+                showAlert(`${section.charAt(0).toUpperCase() + section.slice(1)} information saved successfully!`, 'success');
+                
+                if (section === 'social') {
+                    updateSocialLinksPreview();
+                }
+
+            } catch (error) {
+                console.error('Error saving profile:', error);
+                showAlert('Failed to save profile. Please try again.', 'error');
+            }
+        }
+
+        // Add event listeners for social links to update preview
+        ['website', 'linkedin', 'twitter', 'github', 'youtube', 'portfolio'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateSocialLinksPreview);
+        });
+
+        // Add event listener for expertise input
+        document.getElementById('expertiseInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addSkill('expertise');
+            }
+        });
+
+        // Animate number counting
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const duration = 1500;
+            const steps = 30;
+            const increment = targetNumber / steps;
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetNumber) {
+                    current = targetNumber;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current);
+            }, duration / steps);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : type === 'info' ? 'alert-info' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            alertDiv.style.padding = '1rem';
+            alertDiv.style.borderRadius = '8px';
+            alertDiv.style.color = 'white';
+            alertDiv.style.background = type === 'success' ? '#28a745' : type === 'info' ? '#17a2b8' : '#dc3545';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadProfile();
+            }
+        });
+    </script>
+</body>
+</html>
+

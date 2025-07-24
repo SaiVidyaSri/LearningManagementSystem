@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Courses - LearNova Instructor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .instructor-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .instructor-card {
+            border-left: 4px solid #667eea;
+        }
+        .course-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid #e1e5e9;
+        }
+        .course-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .course-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .course-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-published {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-draft {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-pending {
+            background: #cce5ff;
+            color: #0056b3;
+        }
+        .course-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .course-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .filter-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        .close-modal:hover {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #666;
+        }
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .course-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <header class="header instructor-nav">
+        <div class="container">
+            <nav class="nav">
+                <a href="instructor-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
+                <ul class="nav-links">
+                    <li><a href="instructor-dashboard.html">Dashboard</a></li>
+                    <li><a href="instructor-courses.html" class="active">My Courses</a></li>
+                    <li><a href="instructor-create-course.html">Create Course</a></li>
+                    <li><a href="instructor-students.html">Students</a></li>
+                    <li><a href="instructor-queries.html">Q&A</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card instructor-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">My Courses 📚</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Manage your courses, track performance, and engage with students.</p>
+                </div>
+            </section>
+
+            <!-- Course Statistics -->
+            <section style="margin-bottom: 3rem;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalCourses">0</div>
+                        <div class="stat-label">Total Courses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="publishedCourses">0</div>
+                        <div class="stat-label">Published</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalEnrollments">0</div>
+                        <div class="stat-label">Total Enrollments</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="averageRating">0.0</div>
+                        <div class="stat-label">Average Rating</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filters and Search -->
+            <section class="filter-section">
+                <div class="filter-controls">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search courses..." onkeyup="filterCourses()">
+                    </div>
+                    <select id="statusFilter" onchange="filterCourses()">
+                        <option value="">All Status</option>
+                        <option value="published">Published</option>
+                        <option value="draft">Draft</option>
+                        <option value="pending">Pending Review</option>
+                    </select>
+                    <select id="sortBy" onchange="sortCourses()">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name">Name A-Z</option>
+                        <option value="enrollments">Most Enrolled</option>
+                        <option value="rating">Highest Rated</option>
+                    </select>
+                    <button onclick="openCreateCourseModal()" class="btn btn-primary">
+                        ➕ New Course
+                    </button>
+                </div>
+            </section>
+
+            <!-- Courses Grid -->
+            <section>
+                <div id="coursesContainer">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+                
+                <!-- Pagination -->
+                <div id="pagination" class="pagination" style="display: none;"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Course Details Modal -->
+    <div id="courseDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Course Details</h2>
+                <button class="close-modal" onclick="closeModal('courseDetailsModal')">&times;</button>
+            </div>
+            <div id="courseDetailsContent">
+                <!-- Course details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Course Modal -->
+    <div id="editCourseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Course</h2>
+                <button class="close-modal" onclick="closeModal('editCourseModal')">&times;</button>
+            </div>
+            <form id="editCourseForm">
+                <div class="form-group">
+                    <label for="editCourseName">Course Name</label>
+                    <input type="text" id="editCourseName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCourseDescription">Short Description</label>
+                    <textarea id="editCourseDescription" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editCoursePrice">Price ($)</label>
+                    <input type="number" id="editCoursePrice" min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="editCourseCategory">Category</label>
+                    <select id="editCourseCategory" required>
+                        <option value="">Select Category</option>
+                        <option value="programming">Programming</option>
+                        <option value="design">Design</option>
+                        <option value="business">Business</option>
+                        <option value="marketing">Marketing</option>
+                        <option value="photography">Photography</option>
+                        <option value="music">Music</option>
+                        <option value="health">Health & Fitness</option>
+                        <option value="language">Language</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editCourseLevel">Difficulty Level</label>
+                    <select id="editCourseLevel" required>
+                        <option value="">Select Level</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button type="button" onclick="closeModal('editCourseModal')" class="btn btn-outline">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteConfirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Confirm Deletion</h2>
+                <button class="close-modal" onclick="closeModal('deleteConfirmModal')">&times;</button>
+            </div>
+            <div style="margin-bottom: 2rem;">
+                <p>Are you sure you want to delete this course?</p>
+                <p style="color: #dc3545; font-weight: bold;">This action cannot be undone!</p>
+                <div id="deleteWarning" style="background: #fff3cd; padding: 1rem; border-radius: 6px; margin-top: 1rem;">
+                    <!-- Deletion warnings will be shown here -->
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="closeModal('deleteConfirmModal')" class="btn btn-outline">Cancel</button>
+                <button onclick="confirmDeleteCourse()" class="btn" style="background: #dc3545; color: white;">Delete Course</button>
+            </div>
+        </div>
+    </div>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let allCourses = [];
+        let filteredCourses = [];
+        let currentPage = 1;
+        let coursesPerPage = 9;
+        let courseToDelete = null;
+        let courseToEdit = null;
+
+        // Check authentication and instructor status
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            if (!user || !token) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            if (currentUser.role !== 'instructor') {
+                showAlert('Access denied. Instructor privileges required.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || currentUser.username}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Load instructor's courses
+        async function loadCourses() {
+            try {
+                const response = await fetch('/api/instructor/courses', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch courses');
+                }
+
+                allCourses = await response.json();
+                filteredCourses = [...allCourses];
+                
+                updateStatistics();
+                displayCourses();
+                
+            } catch (error) {
+                console.error('Error loading courses:', error);
+                showAlert('Failed to load courses. Please try again.', 'error');
+                displayEmptyState();
+            }
+        }
+
+        // Update course statistics
+        function updateStatistics() {
+            const totalCourses = allCourses.length;
+            const publishedCourses = allCourses.filter(course => course.status === 'published').length;
+            const totalEnrollments = allCourses.reduce((sum, course) => sum + (course.enrollmentCount || 0), 0);
+            const averageRating = allCourses.length > 0 ? 
+                (allCourses.reduce((sum, course) => sum + (course.averageRating || 0), 0) / allCourses.length).toFixed(1) : 0;
+
+            animateNumber('totalCourses', totalCourses);
+            animateNumber('publishedCourses', publishedCourses);
+            animateNumber('totalEnrollments', totalEnrollments);
+            document.getElementById('averageRating').textContent = averageRating;
+        }
+
+        // Display courses
+        function displayCourses() {
+            const container = document.getElementById('coursesContainer');
+            
+            if (filteredCourses.length === 0) {
+                displayEmptyState();
+                return;
+            }
+
+            // Calculate pagination
+            const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
+            const startIndex = (currentPage - 1) * coursesPerPage;
+            const endIndex = startIndex + coursesPerPage;
+            const coursesToShow = filteredCourses.slice(startIndex, endIndex);
+
+            container.innerHTML = `
+                <div class="course-grid">
+                    ${coursesToShow.map(course => createCourseCard(course)).join('')}
+                </div>
+            `;
+
+            // Update pagination
+            updatePagination(totalPages);
+        }
+
+        // Create course card HTML
+        function createCourseCard(course) {
+            const statusClass = `status-${course.status || 'draft'}`;
+            const enrollmentCount = course.enrollmentCount || 0;
+            const averageRating = (course.averageRating || 0).toFixed(1);
+            const completionRate = course.completionRate || 0;
+
+            return `
+                <div class="course-card">
+                    <img src="${course.image || 'data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 300 200\\"><rect width=\\"300\\" height=\\"200\\" fill=\\"%23f0f0f0\\"/><text x=\\"150\\" y=\\"100\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"16\\">Course Image</text></svg>'}" 
+                         alt="${course.name}" class="course-image">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                        <h3 style="margin: 0; color: #333; flex: 1; margin-right: 1rem;">${course.name}</h3>
+                        <span class="course-status ${statusClass}">${course.status || 'draft'}</span>
+                    </div>
+
+                    <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem; line-height: 1.4;">
+                        ${course.shortDescription || course.description || 'No description available'}
+                    </p>
+
+                    <div class="course-stats">
+                        <div>👥 ${enrollmentCount} students</div>
+                        <div>⭐ ${averageRating} rating</div>
+                        <div>📊 ${completionRate}% completion</div>
+                        <div>💰 $${course.price || 0}</div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.8rem;">
+                        <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 12px;">
+                            ${course.category || 'Uncategorized'}
+                        </span>
+                        <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 12px;">
+                            ${course.level || 'All levels'}
+                        </span>
+                    </div>
+
+                    <div class="course-actions">
+                        <button onclick="viewCourseDetails('${course._id}')" class="btn btn-outline" style="flex: 1;">
+                            👁️ View
+                        </button>
+                        <button onclick="editCourse('${course._id}')" class="btn btn-primary" style="flex: 1;">
+                            ✏️ Edit
+                        </button>
+                        <button onclick="deleteCourse('${course._id}')" class="btn" style="background: #dc3545; color: white; flex: 1;">
+                            🗑️ Delete
+                        </button>
+                    </div>
+
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.8rem; color: #999;">
+                        Created: ${new Date(course.createdAt).toLocaleDateString()}
+                        ${course.updatedAt ? `• Updated: ${new Date(course.updatedAt).toLocaleDateString()}` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display empty state
+        function displayEmptyState() {
+            const container = document.getElementById('coursesContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📚</div>
+                    <h3 style="margin-bottom: 1rem; color: #333;">No courses found</h3>
+                    <p style="margin-bottom: 2rem;">Start creating courses to share your knowledge with students.</p>
+                    <button onclick="openCreateCourseModal()" class="btn btn-primary">Create Your First Course</button>
+                </div>
+            `;
+            document.getElementById('pagination').style.display = 'none';
+        }
+
+        // Filter courses
+        function filterCourses() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            filteredCourses = allCourses.filter(course => {
+                const matchesSearch = !searchTerm || 
+                    course.name.toLowerCase().includes(searchTerm) ||
+                    (course.description && course.description.toLowerCase().includes(searchTerm)) ||
+                    (course.category && course.category.toLowerCase().includes(searchTerm));
+
+                const matchesStatus = !statusFilter || course.status === statusFilter;
+
+                return matchesSearch && matchesStatus;
+            });
+
+            currentPage = 1;
+            sortCourses();
+        }
+
+        // Sort courses
+        function sortCourses() {
+            const sortBy = document.getElementById('sortBy').value;
+
+            filteredCourses.sort((a, b) => {
+                switch (sortBy) {
+                    case 'newest':
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    case 'oldest':
+                        return new Date(a.createdAt) - new Date(b.createdAt);
+                    case 'name':
+                        return a.name.localeCompare(b.name);
+                    case 'enrollments':
+                        return (b.enrollmentCount || 0) - (a.enrollmentCount || 0);
+                    case 'rating':
+                        return (b.averageRating || 0) - (a.averageRating || 0);
+                    default:
+                        return 0;
+                }
+            });
+
+            displayCourses();
+        }
+
+        // Update pagination
+        function updatePagination(totalPages) {
+            const paginationContainer = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                paginationContainer.style.display = 'none';
+                return;
+            }
+
+            paginationContainer.style.display = 'flex';
+            
+            let paginationHTML = `
+                <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                    ← Previous
+                </button>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage || i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    paginationHTML += `
+                        <button onclick="changePage(${i})" ${i === currentPage ? 'class="active"' : ''}>
+                            ${i}
+                        </button>
+                    `;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    paginationHTML += '<span style="padding: 0.5rem;">...</span>';
+                }
+            }
+
+            paginationHTML += `
+                <button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                    Next →
+                </button>
+            `;
+
+            paginationContainer.innerHTML = paginationHTML;
+        }
+
+        // Change page
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                displayCourses();
+            }
+        }
+
+        // View course details
+        function viewCourseDetails(courseId) {
+            const course = allCourses.find(c => c._id === courseId);
+            if (!course) return;
+
+            const modal = document.getElementById('courseDetailsModal');
+            const content = document.getElementById('courseDetailsContent');
+            
+            content.innerHTML = `
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <img src="${course.image || 'data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 300 200\\"><rect width=\\"300\\" height=\\"200\\" fill=\\"%23f0f0f0\\"/><text x=\\"150\\" y=\\"100\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"16\\">Course Image</text></svg>'}" 
+                         alt="${course.name}" style="width: 100%; max-width: 400px; height: 200px; object-fit: cover; border-radius: 8px;">
+                </div>
+
+                <h3 style="margin-bottom: 1rem; color: #333;">${course.name}</h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                    <div><strong>Status:</strong> <span class="course-status status-${course.status || 'draft'}">${course.status || 'draft'}</span></div>
+                    <div><strong>Price:</strong> $${course.price || 0}</div>
+                    <div><strong>Category:</strong> ${course.category || 'Uncategorized'}</div>
+                    <div><strong>Level:</strong> ${course.level || 'All levels'}</div>
+                    <div><strong>Enrollments:</strong> ${course.enrollmentCount || 0}</div>
+                    <div><strong>Rating:</strong> ${(course.averageRating || 0).toFixed(1)} ⭐</div>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="margin-bottom: 0.5rem;">Description:</h4>
+                    <p style="color: #666; line-height: 1.6;">${course.description || course.shortDescription || 'No description available'}</p>
+                </div>
+
+                ${course.learningOutcomes && course.learningOutcomes.length > 0 ? `
+                    <div style="margin-bottom: 2rem;">
+                        <h4 style="margin-bottom: 0.5rem;">Learning Outcomes:</h4>
+                        <ul style="color: #666;">
+                            ${course.learningOutcomes.map(outcome => `<li>${outcome}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button onclick="closeModal('courseDetailsModal')" class="btn btn-outline">Close</button>
+                    <button onclick="editCourse('${course._id}')" class="btn btn-primary">Edit Course</button>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        // Edit course
+        function editCourse(courseId) {
+            const course = allCourses.find(c => c._id === courseId);
+            if (!course) return;
+
+            courseToEdit = course;
+            
+            // Populate form
+            document.getElementById('editCourseName').value = course.name || '';
+            document.getElementById('editCourseDescription').value = course.shortDescription || course.description || '';
+            document.getElementById('editCoursePrice').value = course.price || 0;
+            document.getElementById('editCourseCategory').value = course.category || '';
+            document.getElementById('editCourseLevel').value = course.level || '';
+
+            // Close details modal if open
+            closeModal('courseDetailsModal');
+            
+            // Open edit modal
+            document.getElementById('editCourseModal').style.display = 'block';
+        }
+
+        // Handle edit course form submission
+        document.getElementById('editCourseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!courseToEdit) return;
+
+            const formData = {
+                name: document.getElementById('editCourseName').value,
+                shortDescription: document.getElementById('editCourseDescription').value,
+                price: parseFloat(document.getElementById('editCoursePrice').value) || 0,
+                category: document.getElementById('editCourseCategory').value,
+                level: document.getElementById('editCourseLevel').value
+            };
+
+            try {
+                const response = await fetch(`/api/courses/${courseToEdit._id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update course');
+                }
+
+                showAlert('Course updated successfully!', 'success');
+                closeModal('editCourseModal');
+                loadCourses(); // Reload courses
+
+            } catch (error) {
+                console.error('Error updating course:', error);
+                showAlert('Failed to update course. Please try again.', 'error');
+            }
+        });
+
+        // Delete course
+        function deleteCourse(courseId) {
+            const course = allCourses.find(c => c._id === courseId);
+            if (!course) return;
+
+            courseToDelete = course;
+            
+            // Show warnings based on course data
+            const warnings = [];
+            if (course.enrollmentCount > 0) {
+                warnings.push(`⚠️ This course has ${course.enrollmentCount} enrolled students.`);
+            }
+            if (course.status === 'published') {
+                warnings.push(`⚠️ This is a published course and will be removed from the platform.`);
+            }
+            if (course.averageRating > 0) {
+                warnings.push(`⚠️ This course has reviews and ratings that will be lost.`);
+            }
+
+            document.getElementById('deleteWarning').innerHTML = warnings.length > 0 ? 
+                warnings.join('<br>') : 
+                'This course will be permanently deleted.';
+
+            document.getElementById('deleteConfirmModal').style.display = 'block';
+        }
+
+        // Confirm delete course
+        async function confirmDeleteCourse() {
+            if (!courseToDelete) return;
+
+            try {
+                const response = await fetch(`/api/courses/${courseToDelete._id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete course');
+                }
+
+                showAlert('Course deleted successfully!', 'success');
+                closeModal('deleteConfirmModal');
+                loadCourses(); // Reload courses
+
+            } catch (error) {
+                console.error('Error deleting course:', error);
+                showAlert('Failed to delete course. Please try again.', 'error');
+            }
+        }
+
+        // Open create course modal (redirect to create page)
+        function openCreateCourseModal() {
+            window.location.href = 'instructor-create-course.html';
+        }
+
+        // Modal functions
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            courseToDelete = null;
+            courseToEdit = null;
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        // Animate number counting
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const duration = 1500;
+            const steps = 30;
+            const increment = targetNumber / steps;
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetNumber) {
+                    current = targetNumber;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current);
+            }, duration / steps);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            alertDiv.style.padding = '1rem';
+            alertDiv.style.borderRadius = '8px';
+            alertDiv.style.color = 'white';
+            alertDiv.style.background = type === 'success' ? '#28a745' : '#dc3545';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadCourses();
+            }
+        });
+    </script>
+</body>
+</html>
+

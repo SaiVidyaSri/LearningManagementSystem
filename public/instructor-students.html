@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Students - LearNova Instructor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .instructor-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .instructor-card {
+            border-left: 4px solid #667eea;
+        }
+        .student-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid #e1e5e9;
+        }
+        .student-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .student-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .student-info {
+            flex: 1;
+        }
+        .student-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        .student-email {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .student-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin: 1rem 0;
+            font-size: 0.8rem;
+        }
+        .student-stat {
+            text-align: center;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        .student-stat-number {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .student-stat-label {
+            color: #666;
+            font-size: 0.7rem;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+        .filter-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1rem;
+        }
+        .students-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #666;
+        }
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        .close-modal:hover {
+            color: #333;
+        }
+        .course-enrollment {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .course-enrollment h4 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        .enrollment-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e1e5e9;
+            margin-bottom: 2rem;
+        }
+        .tab {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header class="header instructor-nav">
+        <div class="container">
+            <nav class="nav">
+                <a href="instructor-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
+                <ul class="nav-links">
+                    <li><a href="instructor-dashboard.html">Dashboard</a></li>
+                    <li><a href="instructor-courses.html">My Courses</a></li>
+                    <li><a href="instructor-create-course.html">Create Course</a></li>
+                    <li><a href="instructor-students.html" class="active">Students</a></li>
+                    <li><a href="instructor-queries.html">Q&A</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card instructor-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">My Students 👥</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Track student progress, engagement, and performance across your courses.</p>
+                </div>
+            </section>
+
+            <!-- Student Statistics -->
+            <section style="margin-bottom: 3rem;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalStudents">0</div>
+                        <div class="stat-label">Total Students</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activeStudents">0</div>
+                        <div class="stat-label">Active This Month</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="completedCourses">0</div>
+                        <div class="stat-label">Course Completions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="averageProgress">0%</div>
+                        <div class="stat-label">Average Progress</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabs -->
+            <section class="tabs">
+                <button class="tab active" onclick="switchTab('all')">All Students</button>
+                <button class="tab" onclick="switchTab('active')">Active</button>
+                <button class="tab" onclick="switchTab('completed')">Completed</button>
+                <button class="tab" onclick="switchTab('struggling')">Need Help</button>
+            </section>
+
+            <!-- Filters and Search -->
+            <section class="filter-section">
+                <div class="filter-controls">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search students..." onkeyup="filterStudents()">
+                    </div>
+                    <select id="courseFilter" onchange="filterStudents()">
+                        <option value="">All Courses</option>
+                        <!-- Course options will be populated dynamically -->
+                    </select>
+                    <select id="progressFilter" onchange="filterStudents()">
+                        <option value="">All Progress</option>
+                        <option value="0-25">0-25% Complete</option>
+                        <option value="26-50">26-50% Complete</option>
+                        <option value="51-75">51-75% Complete</option>
+                        <option value="76-100">76-100% Complete</option>
+                    </select>
+                    <select id="sortBy" onchange="sortStudents()">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name">Name A-Z</option>
+                        <option value="progress">Progress High to Low</option>
+                        <option value="lastActive">Recently Active</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Students Content -->
+            <section>
+                <div class="tab-content active" id="allStudents">
+                    <div id="studentsContainer">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="activeStudents">
+                    <div id="activeStudentsContainer">
+                        <!-- Active students will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="tab-content" id="completedStudents">
+                    <div id="completedStudentsContainer">
+                        <!-- Completed students will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="tab-content" id="strugglingStudents">
+                    <div id="strugglingStudentsContainer">
+                        <!-- Struggling students will be loaded here -->
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Student Details Modal -->
+    <div id="studentDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Student Details</h2>
+                <button class="close-modal" onclick="closeModal('studentDetailsModal')">&times;</button>
+            </div>
+            <div id="studentDetailsContent">
+                <!-- Student details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let allStudents = [];
+        let filteredStudents = [];
+        let instructorCourses = [];
+        let currentTab = 'all';
+
+        // Check authentication and instructor status
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            if (!user || !token) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            if (currentUser.role !== 'instructor') {
+                showAlert('Access denied. Instructor privileges required.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || currentUser.username}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Load instructor's students
+        async function loadStudents() {
+            try {
+                // First, get instructor's courses
+                const coursesResponse = await fetch('/api/instructor/courses', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!coursesResponse.ok) {
+                    throw new Error('Failed to fetch courses');
+                }
+
+                instructorCourses = await coursesResponse.json();
+                populateCourseFilter();
+
+                // Get students enrolled in instructor's courses
+                const studentsResponse = await fetch('/api/instructor/students', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!studentsResponse.ok) {
+                    throw new Error('Failed to fetch students');
+                }
+
+                allStudents = await studentsResponse.json();
+                filteredStudents = [...allStudents];
+                
+                updateStatistics();
+                displayStudents();
+                
+            } catch (error) {
+                console.error('Error loading students:', error);
+                showAlert('Failed to load students. Please try again.', 'error');
+                displayEmptyState();
+            }
+        }
+
+        // Populate course filter dropdown
+        function populateCourseFilter() {
+            const courseFilter = document.getElementById('courseFilter');
+            courseFilter.innerHTML = '<option value="">All Courses</option>';
+            
+            instructorCourses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course._id;
+                option.textContent = course.name;
+                courseFilter.appendChild(option);
+            });
+        }
+
+        // Update student statistics
+        function updateStatistics() {
+            const totalStudents = allStudents.length;
+            const activeStudents = allStudents.filter(student => {
+                const lastActive = new Date(student.lastActive);
+                const monthAgo = new Date();
+                monthAgo.setMonth(monthAgo.getMonth() - 1);
+                return lastActive > monthAgo;
+            }).length;
+            
+            const completedCourses = allStudents.reduce((sum, student) => {
+                return sum + student.enrollments.filter(enrollment => enrollment.progress === 100).length;
+            }, 0);
+            
+            const averageProgress = totalStudents > 0 ? 
+                Math.round(allStudents.reduce((sum, student) => {
+                    const avgProgress = student.enrollments.reduce((progSum, enrollment) => progSum + enrollment.progress, 0) / student.enrollments.length;
+                    return sum + avgProgress;
+                }, 0) / totalStudents) : 0;
+
+            animateNumber('totalStudents', totalStudents);
+            animateNumber('activeStudents', activeStudents);
+            animateNumber('completedCourses', completedCourses);
+            document.getElementById('averageProgress').textContent = `${averageProgress}%`;
+        }
+
+        // Switch tabs
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Filter and display students based on tab
+            filterStudentsByTab(tabName);
+            displayStudents();
+        }
+
+        // Filter students by tab
+        function filterStudentsByTab(tabName) {
+            switch (tabName) {
+                case 'active':
+                    const monthAgo = new Date();
+                    monthAgo.setMonth(monthAgo.getMonth() - 1);
+                    filteredStudents = allStudents.filter(student => {
+                        const lastActive = new Date(student.lastActive);
+                        return lastActive > monthAgo;
+                    });
+                    break;
+                    
+                case 'completed':
+                    filteredStudents = allStudents.filter(student => {
+                        return student.enrollments.some(enrollment => enrollment.progress === 100);
+                    });
+                    break;
+                    
+                case 'struggling':
+                    filteredStudents = allStudents.filter(student => {
+                        const avgProgress = student.enrollments.reduce((sum, enrollment) => sum + enrollment.progress, 0) / student.enrollments.length;
+                        return avgProgress < 30 && student.enrollments.length > 0;
+                    });
+                    break;
+                    
+                default: // 'all'
+                    filteredStudents = [...allStudents];
+                    break;
+            }
+            
+            // Apply additional filters
+            filterStudents();
+        }
+
+        // Display students
+        function displayStudents() {
+            const container = document.getElementById('studentsContainer');
+            
+            if (filteredStudents.length === 0) {
+                displayEmptyState();
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="students-grid">
+                    ${filteredStudents.map(student => createStudentCard(student)).join('')}
+                </div>
+            `;
+        }
+
+        // Create student card HTML
+        function createStudentCard(student) {
+            const totalEnrollments = student.enrollments.length;
+            const completedCourses = student.enrollments.filter(e => e.progress === 100).length;
+            const averageProgress = totalEnrollments > 0 ? 
+                Math.round(student.enrollments.reduce((sum, e) => sum + e.progress, 0) / totalEnrollments) : 0;
+            
+            const lastActive = new Date(student.lastActive).toLocaleDateString();
+            const initials = student.fullName ? student.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : student.username[0].toUpperCase();
+
+            return `
+                <div class="student-card" onclick="viewStudentDetails('${student._id}')">
+                    <div class="student-avatar">
+                        ${initials}
+                    </div>
+                    
+                    <div class="student-info">
+                        <div class="student-name">${student.fullName || student.username}</div>
+                        <div class="student-email">${student.email}</div>
+                        
+                        <div class="student-stats">
+                            <div class="student-stat">
+                                <div class="student-stat-number">${totalEnrollments}</div>
+                                <div class="student-stat-label">Enrolled</div>
+                            </div>
+                            <div class="student-stat">
+                                <div class="student-stat-number">${completedCourses}</div>
+                                <div class="student-stat-label">Completed</div>
+                            </div>
+                            <div class="student-stat">
+                                <div class="student-stat-number">${averageProgress}%</div>
+                                <div class="student-stat-label">Avg Progress</div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                <span style="font-size: 0.8rem; color: #666;">Overall Progress</span>
+                                <span style="font-size: 0.8rem; color: #667eea; font-weight: bold;">${averageProgress}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${averageProgress}%;"></div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; font-size: 0.8rem; color: #666;">
+                            <span>Last active: ${lastActive}</span>
+                            <span style="color: ${getActivityStatus(student.lastActive).color};">
+                                ${getActivityStatus(student.lastActive).text}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Get activity status
+        function getActivityStatus(lastActive) {
+            const now = new Date();
+            const lastActiveDate = new Date(lastActive);
+            const daysDiff = Math.floor((now - lastActiveDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff === 0) return { text: 'Active today', color: '#28a745' };
+            if (daysDiff <= 7) return { text: 'Active this week', color: '#ffc107' };
+            if (daysDiff <= 30) return { text: 'Active this month', color: '#fd7e14' };
+            return { text: 'Inactive', color: '#dc3545' };
+        }
+
+        // Display empty state
+        function displayEmptyState() {
+            const container = document.getElementById('studentsContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">👥</div>
+                    <h3 style="margin-bottom: 1rem; color: #333;">No students found</h3>
+                    <p style="margin-bottom: 2rem;">Students will appear here once they enroll in your courses.</p>
+                    <a href="instructor-courses.html" class="btn btn-primary">View My Courses</a>
+                </div>
+            `;
+        }
+
+        // Filter students
+        function filterStudents() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const courseFilter = document.getElementById('courseFilter').value;
+            const progressFilter = document.getElementById('progressFilter').value;
+
+            let filtered = [...allStudents];
+
+            // Apply tab filter first
+            filterStudentsByTab(currentTab);
+            filtered = [...filteredStudents];
+
+            // Apply search filter
+            if (searchTerm) {
+                filtered = filtered.filter(student => 
+                    (student.fullName && student.fullName.toLowerCase().includes(searchTerm)) ||
+                    student.username.toLowerCase().includes(searchTerm) ||
+                    student.email.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            // Apply course filter
+            if (courseFilter) {
+                filtered = filtered.filter(student => 
+                    student.enrollments.some(enrollment => enrollment.courseId === courseFilter)
+                );
+            }
+
+            // Apply progress filter
+            if (progressFilter) {
+                const [min, max] = progressFilter.split('-').map(Number);
+                filtered = filtered.filter(student => {
+                    const avgProgress = student.enrollments.reduce((sum, e) => sum + e.progress, 0) / student.enrollments.length;
+                    return avgProgress >= min && avgProgress <= max;
+                });
+            }
+
+            filteredStudents = filtered;
+            sortStudents();
+        }
+
+        // Sort students
+        function sortStudents() {
+            const sortBy = document.getElementById('sortBy').value;
+
+            filteredStudents.sort((a, b) => {
+                switch (sortBy) {
+                    case 'newest':
+                        return new Date(b.enrolledAt) - new Date(a.enrolledAt);
+                    case 'oldest':
+                        return new Date(a.enrolledAt) - new Date(b.enrolledAt);
+                    case 'name':
+                        const nameA = a.fullName || a.username;
+                        const nameB = b.fullName || b.username;
+                        return nameA.localeCompare(nameB);
+                    case 'progress':
+                        const progressA = a.enrollments.reduce((sum, e) => sum + e.progress, 0) / a.enrollments.length;
+                        const progressB = b.enrollments.reduce((sum, e) => sum + e.progress, 0) / b.enrollments.length;
+                        return progressB - progressA;
+                    case 'lastActive':
+                        return new Date(b.lastActive) - new Date(a.lastActive);
+                    default:
+                        return 0;
+                }
+            });
+
+            displayStudents();
+        }
+
+        // View student details
+        function viewStudentDetails(studentId) {
+            const student = allStudents.find(s => s._id === studentId);
+            if (!student) return;
+
+            const modal = document.getElementById('studentDetailsModal');
+            const content = document.getElementById('studentDetailsContent');
+            
+            const totalEnrollments = student.enrollments.length;
+            const completedCourses = student.enrollments.filter(e => e.progress === 100).length;
+            const averageProgress = totalEnrollments > 0 ? 
+                Math.round(student.enrollments.reduce((sum, e) => sum + e.progress, 0) / totalEnrollments) : 0;
+
+            content.innerHTML = `
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <div class="student-avatar" style="margin: 0 auto;">
+                        ${student.fullName ? student.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : student.username[0].toUpperCase()}
+                    </div>
+                    <h3 style="margin: 1rem 0 0.5rem 0; color: #333;">${student.fullName || student.username}</h3>
+                    <p style="color: #666;">${student.email}</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                    <div class="student-stat">
+                        <div class="student-stat-number" style="font-size: 1.5rem;">${totalEnrollments}</div>
+                        <div class="student-stat-label">Courses Enrolled</div>
+                    </div>
+                    <div class="student-stat">
+                        <div class="student-stat-number" style="font-size: 1.5rem;">${completedCourses}</div>
+                        <div class="student-stat-label">Completed</div>
+                    </div>
+                    <div class="student-stat">
+                        <div class="student-stat-number" style="font-size: 1.5rem;">${averageProgress}%</div>
+                        <div class="student-stat-label">Average Progress</div>
+                    </div>
+                </div>
+
+                <h4 style="margin-bottom: 1rem; color: #333;">Course Enrollments</h4>
+                ${student.enrollments.map(enrollment => {
+                    const course = instructorCourses.find(c => c._id === enrollment.courseId);
+                    return `
+                        <div class="course-enrollment">
+                            <h4>${course ? course.name : 'Unknown Course'}</h4>
+                            <div class="enrollment-details">
+                                <div><strong>Progress:</strong> ${enrollment.progress}%</div>
+                                <div><strong>Enrolled:</strong> ${new Date(enrollment.enrolledAt).toLocaleDateString()}</div>
+                                <div><strong>Last Activity:</strong> ${new Date(enrollment.lastAccessed).toLocaleDateString()}</div>
+                                <div><strong>Status:</strong> ${enrollment.progress === 100 ? 'Completed' : 'In Progress'}</div>
+                            </div>
+                            <div class="progress-bar" style="margin-top: 0.5rem;">
+                                <div class="progress-fill" style="width: ${enrollment.progress}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+
+                <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.9rem; color: #666;">
+                    <div><strong>Joined:</strong> ${new Date(student.createdAt).toLocaleDateString()}</div>
+                    <div><strong>Last Active:</strong> ${new Date(student.lastActive).toLocaleDateString()}</div>
+                    ${student.bio ? `<div style="margin-top: 0.5rem;"><strong>Bio:</strong> ${student.bio}</div>` : ''}
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button onclick="closeModal('studentDetailsModal')" class="btn btn-outline">Close</button>
+                    <button onclick="messageStudent('${student._id}')" class="btn btn-primary">Send Message</button>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        // Message student (placeholder function)
+        function messageStudent(studentId) {
+            showAlert('Messaging feature coming soon!', 'info');
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        // Animate number counting
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const duration = 1500;
+            const steps = 30;
+            const increment = targetNumber / steps;
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetNumber) {
+                    current = targetNumber;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current);
+            }, duration / steps);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : type === 'info' ? 'alert-info' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            alertDiv.style.padding = '1rem';
+            alertDiv.style.borderRadius = '8px';
+            alertDiv.style.color = 'white';
+            alertDiv.style.background = type === 'success' ? '#28a745' : type === 'info' ? '#17a2b8' : '#dc3545';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadStudents();
+            }
+        });
+    </script>
+</body>
+</html>
+

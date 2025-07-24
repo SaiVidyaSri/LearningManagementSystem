@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports & Analytics - LearNova Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .admin-nav {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        .admin-card {
+            border-left: 4px solid #dc3545;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        .chart-placeholder {
+            height: 300px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 1.1rem;
+            border-radius: 8px;
+        }
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .report-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #dc3545;
+        }
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .report-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .report-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .report-change {
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .report-change.positive {
+            color: #28a745;
+        }
+        .report-change.negative {
+            color: #dc3545;
+        }
+        .filter-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .filter-label {
+            font-weight: bold;
+            color: #333;
+            font-size: 0.9rem;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 2rem;
+        }
+        .tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            border-bottom-color: #dc3545;
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .tab:hover {
+            background: #f8f9fa;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .export-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .export-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #dc3545;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <header class="header admin-nav">
+        <div class="container">
+            <nav class="nav">
+                <a href="admin-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
+                <ul class="nav-links">
+                    <li><a href="admin-dashboard.html">Dashboard</a></li>
+                    <li><a href="admin-users.html">Users</a></li>
+                    <li><a href="admin-courses.html">Courses</a></li>
+                    <li><a href="admin-instructors.html">Instructors</a></li>
+                    <li><a href="admin-reviews.html">Reviews</a></li>
+                    <li><a href="admin-reports.html" class="active">Reports</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome Admin!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card admin-card" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">Reports & Analytics 📊</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Comprehensive insights and analytics for platform performance and growth.</p>
+                </div>
+            </section>
+
+            <!-- Filter Section -->
+            <section class="filter-section">
+                <h3 style="margin-bottom: 1rem; color: #333;">Report Filters</h3>
+                <div class="filter-controls">
+                    <div class="filter-group">
+                        <label class="filter-label">Date Range</label>
+                        <select id="dateRange" class="form-control" onchange="updateReports()">
+                            <option value="7">Last 7 days</option>
+                            <option value="30" selected>Last 30 days</option>
+                            <option value="90">Last 3 months</option>
+                            <option value="365">Last year</option>
+                            <option value="custom">Custom range</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Report Type</label>
+                        <select id="reportType" class="form-control" onchange="updateReports()">
+                            <option value="overview">Overview</option>
+                            <option value="users">User Analytics</option>
+                            <option value="courses">Course Performance</option>
+                            <option value="revenue">Revenue Analysis</option>
+                            <option value="engagement">Engagement Metrics</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Actions</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="refreshReports()" class="btn btn-primary">Refresh</button>
+                            <button onclick="exportCurrentReport()" class="btn btn-outline">Export</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Key Metrics -->
+            <section style="margin-bottom: 3rem;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Key Performance Indicators</h2>
+                <div class="report-grid">
+                    <div class="report-card">
+                        <div class="report-header">
+                            <div class="report-title">Total Revenue</div>
+                            <div style="font-size: 1.5rem;">💰</div>
+                        </div>
+                        <div class="report-value" id="totalRevenue">$0</div>
+                        <div class="report-change positive" id="revenueChange">+0% from last period</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 75%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="report-card">
+                        <div class="report-header">
+                            <div class="report-title">Active Users</div>
+                            <div style="font-size: 1.5rem;">👥</div>
+                        </div>
+                        <div class="report-value" id="activeUsers">0</div>
+                        <div class="report-change positive" id="usersChange">+0% from last period</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 60%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="report-card">
+                        <div class="report-header">
+                            <div class="report-title">Course Completions</div>
+                            <div style="font-size: 1.5rem;">🎓</div>
+                        </div>
+                        <div class="report-value" id="completions">0</div>
+                        <div class="report-change positive" id="completionsChange">+0% from last period</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 45%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="report-card">
+                        <div class="report-header">
+                            <div class="report-title">Avg. Rating</div>
+                            <div style="font-size: 1.5rem;">⭐</div>
+                        </div>
+                        <div class="report-value" id="avgRating">0.0</div>
+                        <div class="report-change positive" id="ratingChange">+0% from last period</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 85%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Report Tabs -->
+            <section>
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('overview')">Overview</div>
+                    <div class="tab" onclick="switchTab('users')">User Analytics</div>
+                    <div class="tab" onclick="switchTab('courses')">Course Performance</div>
+                    <div class="tab" onclick="switchTab('revenue')">Revenue Analysis</div>
+                    <div class="tab" onclick="switchTab('engagement')">Engagement</div>
+                </div>
+
+                <!-- Overview Tab -->
+                <div id="overview-tab" class="tab-content active">
+                    <div class="chart-container">
+                        <div class="chart-title">Platform Growth Overview</div>
+                        <div class="chart-placeholder">
+                            📈 User Registration & Course Enrollment Trends
+                            <br><small>Chart visualization would be implemented here</small>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div class="chart-container">
+                            <div class="chart-title">Top Performing Courses</div>
+                            <div id="topCoursesTable">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Course</th>
+                                            <th>Enrollments</th>
+                                            <th>Rating</th>
+                                            <th>Revenue</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="topCoursesBody">
+                                        <!-- Data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <div class="chart-title">Recent Activity</div>
+                            <div id="recentActivity">
+                                <!-- Recent activity will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Analytics Tab -->
+                <div id="users-tab" class="tab-content">
+                    <div class="chart-container">
+                        <div class="chart-title">User Registration Trends</div>
+                        <div class="chart-placeholder">
+                            👥 New User Registrations Over Time
+                            <br><small>Line chart showing daily/weekly/monthly registrations</small>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div class="chart-container">
+                            <div class="chart-title">User Demographics</div>
+                            <div class="chart-placeholder">
+                                🌍 Geographic Distribution
+                                <br><small>Pie chart of user locations</small>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <div class="chart-title">User Engagement</div>
+                            <div class="chart-placeholder">
+                                📊 Daily/Weekly Active Users
+                                <br><small>Bar chart of engagement metrics</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course Performance Tab -->
+                <div id="courses-tab" class="tab-content">
+                    <div class="chart-container">
+                        <div class="chart-title">Course Enrollment Trends</div>
+                        <div class="chart-placeholder">
+                            📚 Course Enrollments Over Time
+                            <br><small>Multi-line chart showing enrollment trends by category</small>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div class="chart-container">
+                            <div class="chart-title">Completion Rates</div>
+                            <div class="chart-placeholder">
+                                ✅ Course Completion Statistics
+                                <br><small>Bar chart of completion rates by course</small>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <div class="chart-title">Category Performance</div>
+                            <div class="chart-placeholder">
+                                🏷️ Performance by Course Category
+                                <br><small>Horizontal bar chart of category metrics</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Revenue Analysis Tab -->
+                <div id="revenue-tab" class="tab-content">
+                    <div class="chart-container">
+                        <div class="chart-title">Revenue Trends</div>
+                        <div class="chart-placeholder">
+                            💰 Monthly Revenue Growth
+                            <br><small>Area chart showing revenue over time</small>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div class="chart-container">
+                            <div class="chart-title">Revenue by Course</div>
+                            <div class="chart-placeholder">
+                                📊 Top Revenue Generating Courses
+                                <br><small>Bar chart of course revenues</small>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <div class="chart-title">Payment Methods</div>
+                            <div class="chart-placeholder">
+                                💳 Payment Method Distribution
+                                <br><small>Donut chart of payment preferences</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Engagement Tab -->
+                <div id="engagement-tab" class="tab-content">
+                    <div class="chart-container">
+                        <div class="chart-title">User Engagement Metrics</div>
+                        <div class="chart-placeholder">
+                            📈 Daily Active Users vs Course Views
+                            <br><small>Dual-axis chart showing engagement correlation</small>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div class="chart-container">
+                            <div class="chart-title">Session Duration</div>
+                            <div class="chart-placeholder">
+                                ⏱️ Average Session Length
+                                <br><small>Histogram of user session durations</small>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <div class="chart-title">Feature Usage</div>
+                            <div class="chart-placeholder">
+                                🔧 Most Used Platform Features
+                                <br><small>Horizontal bar chart of feature engagement</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Export Section -->
+            <section class="export-section">
+                <h3 style="margin-bottom: 1rem; color: #333;">Export Reports</h3>
+                <p style="margin-bottom: 1rem; color: #666;">Download detailed reports in various formats for further analysis.</p>
+                <div class="export-buttons">
+                    <button onclick="exportReport('pdf')" class="btn btn-primary">Export as PDF</button>
+                    <button onclick="exportReport('excel')" class="btn btn-outline">Export as Excel</button>
+                    <button onclick="exportReport('csv')" class="btn btn-outline">Export as CSV</button>
+                    <button onclick="scheduleReport()" class="btn btn-outline">Schedule Report</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let currentTab = 'overview';
+        let reportData = {};
+
+        // Check authentication and admin status
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            if (!user || !token) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            if (currentUser.role !== 'admin') {
+                showAlert('Access denied. Admin privileges required.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || 'Admin'}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Load report data
+        async function loadReportData() {
+            try {
+                const response = await fetch('/api/admin/statistics', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch statistics');
+                }
+
+                const stats = await response.json();
+                reportData = stats;
+
+                updateKPIs(stats);
+                updateCurrentTab();
+
+            } catch (error) {
+                console.error('Error loading report data:', error);
+                // Use mock data for demonstration
+                const mockStats = generateMockStats();
+                reportData = mockStats;
+                updateKPIs(mockStats);
+                updateCurrentTab();
+            }
+        }
+
+        // Generate mock statistics for demonstration
+        function generateMockStats() {
+            return {
+                revenue: {
+                    total: 125000,
+                    change: 15.2
+                },
+                users: {
+                    active: 2847,
+                    change: 8.7
+                },
+                courses: {
+                    completions: 1234,
+                    change: 12.3
+                },
+                reviews: {
+                    averageRating: 4.6,
+                    change: 2.1
+                }
+            };
+        }
+
+        // Update KPI cards
+        function updateKPIs(stats) {
+            // Animate revenue
+            animateNumber('totalRevenue', stats.revenue?.total || 125000, '$');
+            document.getElementById('revenueChange').textContent = `+${(stats.revenue?.change || 15.2).toFixed(1)}% from last period`;
+
+            // Animate active users
+            animateNumber('activeUsers', stats.users?.active || 2847);
+            document.getElementById('usersChange').textContent = `+${(stats.users?.change || 8.7).toFixed(1)}% from last period`;
+
+            // Animate completions
+            animateNumber('completions', stats.courses?.completions || 1234);
+            document.getElementById('completionsChange').textContent = `+${(stats.courses?.change || 12.3).toFixed(1)}% from last period`;
+
+            // Update average rating
+            document.getElementById('avgRating').textContent = (stats.reviews?.averageRating || 4.6).toFixed(1);
+            document.getElementById('ratingChange').textContent = `+${(stats.reviews?.change || 2.1).toFixed(1)}% from last period`;
+        }
+
+        // Switch tabs
+        function switchTab(tabName) {
+            // Update tab appearance
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            currentTab = tabName;
+            updateCurrentTab();
+        }
+
+        // Update current tab content
+        function updateCurrentTab() {
+            switch (currentTab) {
+                case 'overview':
+                    loadOverviewData();
+                    break;
+                case 'users':
+                    loadUserAnalytics();
+                    break;
+                case 'courses':
+                    loadCoursePerformance();
+                    break;
+                case 'revenue':
+                    loadRevenueAnalysis();
+                    break;
+                case 'engagement':
+                    loadEngagementMetrics();
+                    break;
+            }
+        }
+
+        // Load overview data
+        function loadOverviewData() {
+            // Load top courses
+            const topCourses = [
+                { name: 'JavaScript Fundamentals', enrollments: 1250, rating: 4.8, revenue: '$15,000' },
+                { name: 'React Development', enrollments: 980, rating: 4.7, revenue: '$12,500' },
+                { name: 'Python for Beginners', enrollments: 875, rating: 4.6, revenue: '$10,800' },
+                { name: 'Data Science Basics', enrollments: 720, rating: 4.9, revenue: '$9,200' },
+                { name: 'Web Design Mastery', enrollments: 650, rating: 4.5, revenue: '$8,100' }
+            ];
+
+            const topCoursesHTML = topCourses.map(course => `
+                <tr>
+                    <td><strong>${course.name}</strong></td>
+                    <td>${course.enrollments}</td>
+                    <td>${course.rating}/5 ⭐</td>
+                    <td>${course.revenue}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('topCoursesBody').innerHTML = topCoursesHTML;
+
+            // Load recent activity
+            const recentActivities = [
+                { action: 'New user registration', user: 'John Doe', time: '2 minutes ago' },
+                { action: 'Course completed', user: 'Jane Smith', time: '5 minutes ago' },
+                { action: 'New course published', user: 'Mike Johnson', time: '15 minutes ago' },
+                { action: 'Review submitted', user: 'Sarah Wilson', time: '30 minutes ago' },
+                { action: 'Payment received', user: 'David Brown', time: '1 hour ago' }
+            ];
+
+            const activityHTML = recentActivities.map(activity => `
+                <div style="padding: 0.75rem 0; border-bottom: 1px solid #eee;">
+                    <div style="font-weight: bold; color: #333;">${activity.action}</div>
+                    <div style="font-size: 0.9rem; color: #666;">${activity.user} • ${activity.time}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('recentActivity').innerHTML = activityHTML;
+        }
+
+        // Load user analytics (placeholder)
+        function loadUserAnalytics() {
+            console.log('Loading user analytics...');
+        }
+
+        // Load course performance (placeholder)
+        function loadCoursePerformance() {
+            console.log('Loading course performance...');
+        }
+
+        // Load revenue analysis (placeholder)
+        function loadRevenueAnalysis() {
+            console.log('Loading revenue analysis...');
+        }
+
+        // Load engagement metrics (placeholder)
+        function loadEngagementMetrics() {
+            console.log('Loading engagement metrics...');
+        }
+
+        // Update reports based on filters
+        function updateReports() {
+            const dateRange = document.getElementById('dateRange').value;
+            const reportType = document.getElementById('reportType').value;
+            
+            console.log(`Updating reports for ${dateRange} days, type: ${reportType}`);
+            
+            // Reload data based on filters
+            loadReportData();
+            showAlert('Reports updated successfully!', 'success');
+        }
+
+        // Refresh reports
+        function refreshReports() {
+            loadReportData();
+            showAlert('Reports refreshed successfully!', 'success');
+        }
+
+        // Export functions
+        function exportCurrentReport() {
+            exportReport('pdf');
+        }
+
+        function exportReport(format) {
+            const dateRange = document.getElementById('dateRange').value;
+            const reportType = document.getElementById('reportType').value;
+            
+            // Mock export functionality
+            showAlert(`Exporting ${reportType} report as ${format.toUpperCase()}...`, 'success');
+            
+            // In a real implementation, this would trigger a download
+            setTimeout(() => {
+                showAlert(`Report exported successfully!`, 'success');
+            }, 2000);
+        }
+
+        function scheduleReport() {
+            showAlert('Report scheduling feature will be implemented', 'info');
+        }
+
+        // Animate number counting
+        function animateNumber(elementId, targetNumber, prefix = '') {
+            const element = document.getElementById(elementId);
+            const duration = 2000;
+            const steps = 50;
+            const increment = targetNumber / steps;
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetNumber) {
+                    current = targetNumber;
+                    clearInterval(timer);
+                }
+                
+                if (prefix === '$') {
+                    element.textContent = `$${Math.floor(current).toLocaleString()}`;
+                } else {
+                    element.textContent = Math.floor(current).toLocaleString();
+                }
+            }, duration / steps);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : type === 'info' ? 'alert-info' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            alertDiv.style.padding = '1rem';
+            alertDiv.style.borderRadius = '8px';
+            alertDiv.style.color = 'white';
+            alertDiv.style.background = type === 'success' ? '#28a745' : type === 'info' ? '#17a2b8' : '#dc3545';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadReportData();
+            }
+        });
+    </script>
+</body>
+</html>
+

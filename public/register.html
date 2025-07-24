@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - LearnHub</title>
+    <title>Sign Up - LearNova</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
 </head>
@@ -11,7 +11,7 @@
     <header class="header">
         <div class="container">
             <nav class="nav">
-                <a href="index.html" class="logo">📚 LearnHub</a>
+                <a href="index.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
                 <ul class="nav-links">
                     <li><a href="index.html">Home</a></li>
                     <li><a href="courses.html">Courses</a></li>
@@ -30,7 +30,7 @@
             <div style="max-width: 500px; margin: 2rem auto;">
                 <div class="card fade-in">
                     <div style="text-align: center; margin-bottom: 2rem;">
-                        <h1 style="color: #333; margin-bottom: 0.5rem;">Join LearnHub</h1>
+                        <h1 style="color: #333; margin-bottom: 0.5rem;">Join LearNova</h1>
                         <p style="color: #666;">Create your account and start learning today</p>
                     </div>
 
@@ -152,7 +152,7 @@
 
     <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: auto;">
         <div class="container">
-            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
         </div>
     </footer>
 
@@ -260,14 +260,14 @@
             }
             
             try {
-                const response = await fetch('/register', {
+                const response = await fetch('/api/register', { // <-- The URL is now /api/register
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(registerData)
+                    body: JSON.stringify(registerData )
                 });
-                
+                            
                 const result = await response.json();
                 
                 if (response.ok) {

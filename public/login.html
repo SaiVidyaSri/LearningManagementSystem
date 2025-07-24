@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - LearnHub</title>
+    <title>Login - LearNova</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
 </head>
@@ -11,7 +11,7 @@
     <header class="header">
         <div class="container">
             <nav class="nav">
-                <a href="index.html" class="logo">📚 LearnHub</a>
+                <a href="index.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
                 <ul class="nav-links">
                     <li><a href="index.html">Home</a></li>
                     <li><a href="courses.html">Courses</a></li>
@@ -31,7 +31,7 @@
                 <div class="card fade-in">
                     <div style="text-align: center; margin-bottom: 2rem;">
                         <h1 style="color: #333; margin-bottom: 0.5rem;">Welcome Back</h1>
-                        <p style="color: #666;">Sign in to your LearnHub account</p>
+                        <p style="color: #666;">Sign in to your LearNova account</p>
                     </div>
 
                     <div id="alertContainer"></div>
@@ -70,11 +70,21 @@
                 <div class="card" style="margin-top: 1rem; background: #f8f9ff; border: 1px solid #e1e5e9;">
                     <h3 style="color: #667eea; margin-bottom: 1rem; text-align: center;">Demo Credentials</h3>
                     <p style="color: #666; margin-bottom: 1rem; text-align: center;">Use these credentials to test the system:</p>
-                    <div style="background: white; padding: 1rem; border-radius: 5px; font-family: monospace;">
-                        <p style="margin: 0.5rem 0;"><strong>Email:</strong> demo@learnhub.com</p>
-                        <p style="margin: 0.5rem 0;"><strong>Password:</strong> demo123</p>
+                    <div style="background: white; padding: 1rem; border-radius: 5px; font-family: monospace; margin-bottom: 1rem;">
+                        <p style="margin: 0.5rem 0;"><strong>Student:</strong> demo@learnhub.com / demo123</p>
                     </div>
-                    <button onclick="fillDemoCredentials()" class="btn btn-secondary w-100" style="margin-top: 1rem;">Use Demo Credentials</button>
+                    <button onclick="fillDemoCredentials()" class="btn btn-secondary w-100" style="margin-bottom: 1rem;">Use Demo Credentials</button>
+                </div>
+
+                <!-- ADMIN CREDENTIALS CARD - NEW -->
+                <div class="card" style="margin-top: 1rem; background: #fff3cd; border: 1px solid #ffeaa7;">
+                    <h3 style="color: #dc3545; margin-bottom: 1rem; text-align: center;">🛡️ Admin Access</h3>
+                    <p style="color: #856404; margin-bottom: 1rem; text-align: center;">Admin credentials for system management:</p>
+                    <div style="background: white; padding: 1rem; border-radius: 5px; font-family: monospace; margin-bottom: 1rem;">
+                        <p style="margin: 0.5rem 0;"><strong>Email:</strong> admin@learnhub.com</p>
+                        <p style="margin: 0.5rem 0;"><strong>Password:</strong> admin123</p>
+                    </div>
+                    <button onclick="fillAdminCredentials()" class="btn btn-danger w-100">Use Admin Credentials</button>
                 </div>
             </div>
         </div>
@@ -82,7 +92,7 @@
 
     <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: auto;">
         <div class="container">
-            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
         </div>
     </footer>
 
@@ -91,6 +101,12 @@
         function fillDemoCredentials() {
             document.getElementById('email').value = 'demo@learnhub.com';
             document.getElementById('password').value = 'demo123';
+        }
+
+        // Fill admin credentials - NEW FUNCTION
+        function fillAdminCredentials() {
+            document.getElementById('email').value = 'admin@learnhub.com';
+            document.getElementById('password').value = 'admin123';
         }
 
         // Show alert message
@@ -110,7 +126,7 @@
             }, 5000);
         }
 
-        // Handle form submission
+        // Handle form submission - UPDATED WITH ADMIN REDIRECT
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -130,7 +146,7 @@
             };
             
             try {
-                const response = await fetch('/login', {
+                const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -147,7 +163,7 @@
                     
                     showAlert('Login successful! Redirecting...', 'success');
                     
-                    // Redirect based on user role
+                    // Redirect based on user role - UPDATED
                     setTimeout(() => {
                         switch(result.user.role) {
                             case 'admin':
@@ -180,11 +196,23 @@
             }
         });
 
-        // Check if user is already logged in
+        // Check if user is already logged in - UPDATED
         document.addEventListener('DOMContentLoaded', () => {
             const user = localStorage.getItem('user');
             if (user) {
-                window.location.href = 'dashboard.html';
+                const userData = JSON.parse(user);
+                // Redirect based on role
+                switch(userData.role) {
+                    case 'admin':
+                        window.location.href = 'admin-dashboard.html';
+                        break;
+                    case 'instructor':
+                        window.location.href = 'instructor-dashboard.html';
+                        break;
+                    default:
+                        window.location.href = 'student-dashboard.html';
+                        break;
+                }
             }
         });
 
@@ -215,4 +243,3 @@
     </script>
 </body>
 </html>
-

@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Q&A - LearNova Instructor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .instructor-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .instructor-card {
+            border-left: 4px solid #667eea;
+        }
+        .query-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e1e5e9;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .query-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .query-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .query-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        .query-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        .query-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-answered {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-urgent {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .query-content {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        .query-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid #f0f0f0;
+        }
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .student-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .query-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        .btn-reply {
+            background: #667eea;
+            color: white;
+        }
+        .btn-reply:hover {
+            background: #5a6fd8;
+        }
+        .btn-mark-urgent {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-mark-urgent:hover {
+            background: #c82333;
+        }
+        .btn-resolve {
+            background: #28a745;
+            color: white;
+        }
+        .btn-resolve:hover {
+            background: #218838;
+        }
+        .filter-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1rem;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e1e5e9;
+            margin-bottom: 2rem;
+        }
+        .tab {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            font-weight: 500;
+            position: relative;
+        }
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        .tab-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #666;
+        }
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        .close-modal:hover {
+            color: #333;
+        }
+        .reply-form {
+            margin-top: 1.5rem;
+        }
+        .reply-form textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+        }
+        .reply-form textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .conversation-thread {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .thread-message {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid #e1e5e9;
+        }
+        .thread-message.instructor {
+            border-left-color: #667eea;
+        }
+        .thread-message.student {
+            border-left-color: #28a745;
+        }
+        .thread-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        .thread-content {
+            color: #333;
+            line-height: 1.6;
+        }
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header class="header instructor-nav">
+        <div class="container">
+            <nav class="nav">
+                <a href="instructor-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
+                <ul class="nav-links">
+                    <li><a href="instructor-dashboard.html">Dashboard</a></li>
+                    <li><a href="instructor-courses.html">My Courses</a></li>
+                    <li><a href="instructor-create-course.html">Create Course</a></li>
+                    <li><a href="instructor-students.html">Students</a></li>
+                    <li><a href="instructor-queries.html" class="active">Q&A</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card instructor-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">Student Q&A 💬</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Respond to student questions and provide support across your courses.</p>
+                </div>
+            </section>
+
+            <!-- Q&A Statistics -->
+            <section style="margin-bottom: 3rem;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalQueries">0</div>
+                        <div class="stat-label">Total Questions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pendingQueries">0</div>
+                        <div class="stat-label">Pending Responses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="answeredQueries">0</div>
+                        <div class="stat-label">Answered</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="responseTime">0h</div>
+                        <div class="stat-label">Avg Response Time</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabs -->
+            <section class="tabs">
+                <button class="tab active" onclick="switchTab('all')">
+                    All Questions
+                    <span class="tab-badge" id="allBadge" style="display: none;">0</span>
+                </button>
+                <button class="tab" onclick="switchTab('pending')">
+                    Pending
+                    <span class="tab-badge" id="pendingBadge">0</span>
+                </button>
+                <button class="tab" onclick="switchTab('answered')">
+                    Answered
+                    <span class="tab-badge" id="answeredBadge" style="display: none;">0</span>
+                </button>
+                <button class="tab" onclick="switchTab('urgent')">
+                    Urgent
+                    <span class="tab-badge" id="urgentBadge">0</span>
+                </button>
+            </section>
+
+            <!-- Filters and Search -->
+            <section class="filter-section">
+                <div class="filter-controls">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search questions..." onkeyup="filterQueries()">
+                    </div>
+                    <select id="courseFilter" onchange="filterQueries()">
+                        <option value="">All Courses</option>
+                        <!-- Course options will be populated dynamically -->
+                    </select>
+                    <select id="sortBy" onchange="sortQueries()">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="urgent">Urgent First</option>
+                        <option value="unanswered">Unanswered First</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Queries Content -->
+            <section>
+                <div id="queriesContainer">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Reply Modal -->
+    <div id="replyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reply to Question</h2>
+                <button class="close-modal" onclick="closeModal('replyModal')">&times;</button>
+            </div>
+            <div id="replyModalContent">
+                <!-- Reply content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Query Details Modal -->
+    <div id="queryDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Question Details</h2>
+                <button class="close-modal" onclick="closeModal('queryDetailsModal')">&times;</button>
+            </div>
+            <div id="queryDetailsContent">
+                <!-- Query details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let allQueries = [];
+        let filteredQueries = [];
+        let instructorCourses = [];
+        let currentTab = 'all';
+
+        // Check authentication and instructor status
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            if (!user || !token) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            if (currentUser.role !== 'instructor') {
+                showAlert('Access denied. Instructor privileges required.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || currentUser.username}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Load instructor's queries
+        async function loadQueries() {
+            try {
+                // First, get instructor's courses
+                const coursesResponse = await fetch('/api/instructor/courses', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!coursesResponse.ok) {
+                    throw new Error('Failed to fetch courses');
+                }
+
+                instructorCourses = await coursesResponse.json();
+                populateCourseFilter();
+
+                // Get queries for instructor's courses
+                const queriesResponse = await fetch('/api/instructor/queries', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!queriesResponse.ok) {
+                    throw new Error('Failed to fetch queries');
+                }
+
+                allQueries = await queriesResponse.json();
+                filteredQueries = [...allQueries];
+                
+                updateStatistics();
+                updateTabBadges();
+                displayQueries();
+                
+            } catch (error) {
+                console.error('Error loading queries:', error);
+                showAlert('Failed to load questions. Please try again.', 'error');
+                displayEmptyState();
+            }
+        }
+
+        // Populate course filter dropdown
+        function populateCourseFilter() {
+            const courseFilter = document.getElementById('courseFilter');
+            courseFilter.innerHTML = '<option value="">All Courses</option>';
+            
+            instructorCourses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course._id;
+                option.textContent = course.name;
+                courseFilter.appendChild(option);
+            });
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const totalQueries = allQueries.length;
+            const pendingQueries = allQueries.filter(q => q.status === 'pending').length;
+            const answeredQueries = allQueries.filter(q => q.status === 'answered').length;
+            
+            // Calculate average response time
+            const answeredWithResponseTime = allQueries.filter(q => q.status === 'answered' && q.responseTime);
+            const avgResponseTime = answeredWithResponseTime.length > 0 ? 
+                Math.round(answeredWithResponseTime.reduce((sum, q) => sum + q.responseTime, 0) / answeredWithResponseTime.length) : 0;
+
+            animateNumber('totalQueries', totalQueries);
+            animateNumber('pendingQueries', pendingQueries);
+            animateNumber('answeredQueries', answeredQueries);
+            document.getElementById('responseTime').textContent = `${avgResponseTime}h`;
+        }
+
+        // Update tab badges
+        function updateTabBadges() {
+            const pendingCount = allQueries.filter(q => q.status === 'pending').length;
+            const urgentCount = allQueries.filter(q => q.priority === 'urgent').length;
+            
+            document.getElementById('pendingBadge').textContent = pendingCount;
+            document.getElementById('urgentBadge').textContent = urgentCount;
+            
+            document.getElementById('pendingBadge').style.display = pendingCount > 0 ? 'flex' : 'none';
+            document.getElementById('urgentBadge').style.display = urgentCount > 0 ? 'flex' : 'none';
+        }
+
+        // Switch tabs
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Filter and display queries based on tab
+            filterQueriesByTab(tabName);
+            displayQueries();
+        }
+
+        // Filter queries by tab
+        function filterQueriesByTab(tabName) {
+            switch (tabName) {
+                case 'pending':
+                    filteredQueries = allQueries.filter(query => query.status === 'pending');
+                    break;
+                    
+                case 'answered':
+                    filteredQueries = allQueries.filter(query => query.status === 'answered');
+                    break;
+                    
+                case 'urgent':
+                    filteredQueries = allQueries.filter(query => query.priority === 'urgent');
+                    break;
+                    
+                default: // 'all'
+                    filteredQueries = [...allQueries];
+                    break;
+            }
+            
+            // Apply additional filters
+            filterQueries();
+        }
+
+        // Display queries
+        function displayQueries() {
+            const container = document.getElementById('queriesContainer');
+            
+            if (filteredQueries.length === 0) {
+                displayEmptyState();
+                return;
+            }
+
+            container.innerHTML = filteredQueries.map(query => createQueryCard(query)).join('');
+        }
+
+        // Create query card HTML
+        function createQueryCard(query) {
+            const course = instructorCourses.find(c => c._id === query.courseId);
+            const timeAgo = getTimeAgo(new Date(query.createdAt));
+            const studentInitials = query.studentName ? query.studentName.split(' ').map(n => n[0]).join('').toUpperCase() : 'S';
+            
+            const statusClass = query.status === 'pending' ? 'status-pending' : 
+                               query.status === 'answered' ? 'status-answered' : 'status-pending';
+            
+            const priorityClass = query.priority === 'urgent' ? 'status-urgent' : '';
+
+            return `
+                <div class="query-card" onclick="viewQueryDetails('${query._id}')">
+                    <div class="query-header">
+                        <div>
+                            <div class="query-title">${query.subject}</div>
+                            <div class="query-meta">
+                                <span>📚 ${course ? course.name : 'Unknown Course'}</span>
+                                <span>⏰ ${timeAgo}</span>
+                                ${query.lesson ? `<span>📖 ${query.lesson}</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <span class="query-status ${statusClass}">
+                                ${query.status === 'pending' ? '⏳ Pending' : '✅ Answered'}
+                            </span>
+                            ${query.priority === 'urgent' ? '<span class="query-status status-urgent">🚨 Urgent</span>' : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="query-content">
+                        ${query.message.length > 200 ? query.message.substring(0, 200) + '...' : query.message}
+                    </div>
+                    
+                    <div class="query-footer">
+                        <div class="student-info">
+                            <div class="student-avatar">${studentInitials}</div>
+                            <div>
+                                <div style="font-weight: 500; color: #333;">${query.studentName || 'Anonymous'}</div>
+                                <div style="font-size: 0.8rem; color: #666;">${query.studentEmail || ''}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="query-actions" onclick="event.stopPropagation();">
+                            ${query.status === 'pending' ? `
+                                <button class="action-btn btn-reply" onclick="replyToQuery('${query._id}')">
+                                    💬 Reply
+                                </button>
+                                ${query.priority !== 'urgent' ? `
+                                    <button class="action-btn btn-mark-urgent" onclick="markAsUrgent('${query._id}')">
+                                        🚨 Mark Urgent
+                                    </button>
+                                ` : ''}
+                            ` : `
+                                <button class="action-btn btn-reply" onclick="replyToQuery('${query._id}')">
+                                    💬 Add Reply
+                                </button>
+                            `}
+                            ${query.status === 'pending' ? `
+                                <button class="action-btn btn-resolve" onclick="markAsResolved('${query._id}')">
+                                    ✅ Mark Resolved
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Get time ago string
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+            
+            if (diffInSeconds < 60) return 'Just now';
+            if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+            if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+            if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Display empty state
+        function displayEmptyState() {
+            const container = document.getElementById('queriesContainer');
+            let message = 'No questions found';
+            let description = 'Questions from students will appear here.';
+            
+            if (currentTab === 'pending') {
+                message = 'No pending questions';
+                description = 'Great! You\'re all caught up with student questions.';
+            } else if (currentTab === 'urgent') {
+                message = 'No urgent questions';
+                description = 'No urgent questions need your immediate attention.';
+            }
+            
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">💬</div>
+                    <h3 style="margin-bottom: 1rem; color: #333;">${message}</h3>
+                    <p style="margin-bottom: 2rem;">${description}</p>
+                    <a href="instructor-courses.html" class="btn btn-primary">View My Courses</a>
+                </div>
+            `;
+        }
+
+        // Filter queries
+        function filterQueries() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const courseFilter = document.getElementById('courseFilter').value;
+
+            let filtered = [...allQueries];
+
+            // Apply tab filter first
+            filterQueriesByTab(currentTab);
+            filtered = [...filteredQueries];
+
+            // Apply search filter
+            if (searchTerm) {
+                filtered = filtered.filter(query => 
+                    query.subject.toLowerCase().includes(searchTerm) ||
+                    query.message.toLowerCase().includes(searchTerm) ||
+                    (query.studentName && query.studentName.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            // Apply course filter
+            if (courseFilter) {
+                filtered = filtered.filter(query => query.courseId === courseFilter);
+            }
+
+            filteredQueries = filtered;
+            sortQueries();
+        }
+
+        // Sort queries
+        function sortQueries() {
+            const sortBy = document.getElementById('sortBy').value;
+
+            filteredQueries.sort((a, b) => {
+                switch (sortBy) {
+                    case 'newest':
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    case 'oldest':
+                        return new Date(a.createdAt) - new Date(b.createdAt);
+                    case 'urgent':
+                        if (a.priority === 'urgent' && b.priority !== 'urgent') return -1;
+                        if (b.priority === 'urgent' && a.priority !== 'urgent') return 1;
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    case 'unanswered':
+                        if (a.status === 'pending' && b.status !== 'pending') return -1;
+                        if (b.status === 'pending' && a.status !== 'pending') return 1;
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    default:
+                        return 0;
+                }
+            });
+
+            displayQueries();
+        }
+
+        // View query details
+        function viewQueryDetails(queryId) {
+            const query = allQueries.find(q => q._id === queryId);
+            if (!query) return;
+
+            const modal = document.getElementById('queryDetailsModal');
+            const content = document.getElementById('queryDetailsContent');
+            const course = instructorCourses.find(c => c._id === query.courseId);
+            
+            content.innerHTML = `
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
+                    <h3 style="margin-bottom: 1rem; color: #333;">${query.subject}</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem; font-size: 0.9rem; color: #666;">
+                        <div><strong>Course:</strong> ${course ? course.name : 'Unknown Course'}</div>
+                        <div><strong>Student:</strong> ${query.studentName || 'Anonymous'}</div>
+                        <div><strong>Date:</strong> ${new Date(query.createdAt).toLocaleDateString()}</div>
+                        <div><strong>Status:</strong> ${query.status === 'pending' ? '⏳ Pending' : '✅ Answered'}</div>
+                        ${query.lesson ? `<div><strong>Lesson:</strong> ${query.lesson}</div>` : ''}
+                        ${query.priority === 'urgent' ? '<div><strong>Priority:</strong> 🚨 Urgent</div>' : ''}
+                    </div>
+                    
+                    <div style="background: white; border-radius: 6px; padding: 1rem; border-left: 3px solid #28a745;">
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">
+                            <strong>Student Question:</strong>
+                        </div>
+                        <div style="color: #333; line-height: 1.6;">${query.message}</div>
+                    </div>
+                </div>
+
+                ${query.replies && query.replies.length > 0 ? `
+                    <div class="conversation-thread">
+                        <h4 style="margin-bottom: 1rem; color: #333;">Conversation History</h4>
+                        ${query.replies.map(reply => `
+                            <div class="thread-message ${reply.isInstructor ? 'instructor' : 'student'}">
+                                <div class="thread-header">
+                                    <strong>${reply.isInstructor ? 'You' : query.studentName || 'Student'}</strong>
+                                    <span>${new Date(reply.createdAt).toLocaleDateString()} ${new Date(reply.createdAt).toLocaleTimeString()}</span>
+                                </div>
+                                <div class="thread-content">${reply.message}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button onclick="closeModal('queryDetailsModal')" class="btn btn-outline">Close</button>
+                    <button onclick="replyToQuery('${query._id}')" class="btn btn-primary">
+                        ${query.status === 'pending' ? '💬 Reply' : '💬 Add Reply'}
+                    </button>
+                    ${query.status === 'pending' ? `
+                        <button onclick="markAsResolved('${query._id}')" class="btn btn-success">
+                            ✅ Mark Resolved
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        // Reply to query
+        function replyToQuery(queryId) {
+            const query = allQueries.find(q => q._id === queryId);
+            if (!query) return;
+
+            const modal = document.getElementById('replyModal');
+            const content = document.getElementById('replyModalContent');
+            
+            content.innerHTML = `
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <h4 style="margin-bottom: 0.5rem; color: #333;">${query.subject}</h4>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                        From: ${query.studentName || 'Anonymous'} • ${new Date(query.createdAt).toLocaleDateString()}
+                    </p>
+                    <div style="background: white; border-radius: 4px; padding: 0.75rem; border-left: 3px solid #28a745;">
+                        ${query.message.length > 150 ? query.message.substring(0, 150) + '...' : query.message}
+                    </div>
+                </div>
+
+                <form class="reply-form" onsubmit="submitReply(event, '${queryId}')">
+                    <label for="replyMessage" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">
+                        Your Reply:
+                    </label>
+                    <textarea id="replyMessage" placeholder="Type your response to help the student..." required></textarea>
+                    
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                        <button type="button" onclick="closeModal('replyModal')" class="btn btn-outline">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Send Reply</button>
+                    </div>
+                </form>
+            `;
+
+            modal.style.display = 'block';
+            
+            // Focus on textarea
+            setTimeout(() => {
+                document.getElementById('replyMessage').focus();
+            }, 100);
+        }
+
+        // Submit reply
+        async function submitReply(event, queryId) {
+            event.preventDefault();
+            
+            const message = document.getElementById('replyMessage').value.trim();
+            if (!message) {
+                showAlert('Please enter a reply message.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/queries/${queryId}/reply`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to send reply');
+                }
+
+                showAlert('Reply sent successfully!', 'success');
+                closeModal('replyModal');
+                
+                // Reload queries to show updated status
+                await loadQueries();
+
+            } catch (error) {
+                console.error('Error sending reply:', error);
+                showAlert('Failed to send reply. Please try again.', 'error');
+            }
+        }
+
+        // Mark as urgent
+        async function markAsUrgent(queryId) {
+            try {
+                const response = await fetch(`/api/queries/${queryId}/urgent`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to mark as urgent');
+                }
+
+                showAlert('Question marked as urgent!', 'success');
+                await loadQueries();
+
+            } catch (error) {
+                console.error('Error marking as urgent:', error);
+                showAlert('Failed to mark as urgent. Please try again.', 'error');
+            }
+        }
+
+        // Mark as resolved
+        async function markAsResolved(queryId) {
+            try {
+                const response = await fetch(`/api/queries/${queryId}/resolve`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to mark as resolved');
+                }
+
+                showAlert('Question marked as resolved!', 'success');
+                await loadQueries();
+
+            } catch (error) {
+                console.error('Error marking as resolved:', error);
+                showAlert('Failed to mark as resolved. Please try again.', 'error');
+            }
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        // Animate number counting
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const duration = 1500;
+            const steps = 30;
+            const increment = targetNumber / steps;
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetNumber) {
+                    current = targetNumber;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current);
+            }, duration / steps);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : type === 'info' ? 'alert-info' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            alertDiv.style.padding = '1rem';
+            alertDiv.style.borderRadius = '8px';
+            alertDiv.style.color = 'white';
+            alertDiv.style.background = type === 'success' ? '#28a745' : type === 'info' ? '#17a2b8' : '#dc3545';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadQueries();
+            }
+        });
+    </script>
+</body>
+</html>
+

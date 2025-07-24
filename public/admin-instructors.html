@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Management - LearNova Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .admin-nav {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        .admin-card {
+            border-left: 4px solid #dc3545;
+        }
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .status-pending { background: #ffc107; color: #000; }
+        .status-approved { background: #28a745; color: white; }
+        .status-rejected { background: #dc3545; color: white; }
+        .status-active { background: #17a2b8; color: white; }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+        .filter-select {
+            min-width: 150px;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+            border: none;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: none;
+        }
+        .instructor-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .instructor-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #dee2e6;
+            background: white;
+            cursor: pointer;
+        }
+        .pagination button:hover {
+            background: #f8f9fa;
+        }
+        .pagination button.active {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .instructor-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .instructor-stat {
+            text-align: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .instructor-stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .instructor-stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .application-details {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        .rejection-form {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #fff3cd;
+            border-radius: 8px;
+            border: 1px solid #ffeaa7;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 2rem;
+        }
+        .tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            border-bottom-color: #dc3545;
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .tab:hover {
+            background: #f8f9fa;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header class="header admin-nav">
+        <div class="container">
+            <nav class="nav">
+                <a href="admin-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
+                <ul class="nav-links">
+                    <li><a href="admin-dashboard.html">Dashboard</a></li>
+                    <li><a href="admin-users.html">Users</a></li>
+                    <li><a href="admin-courses.html">Courses</a></li>
+                    <li><a href="admin-instructors.html" class="active">Instructors</a></li>
+                    <li><a href="admin-reviews.html">Reviews</a></li>
+                    <li><a href="admin-reports.html">Reports</a></li>
+                </ul>
+                <div class="user-info">
+                    <span id="userWelcome">Welcome Admin!</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Header -->
+            <section style="margin-bottom: 3rem;">
+                <div class="card admin-card" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
+                    <h1 style="margin-bottom: 1rem;">Instructor Management 🎓</h1>
+                    <p style="opacity: 0.9; font-size: 1.1rem;">Review applications, manage instructor status, and oversee teaching quality.</p>
+                </div>
+            </section>
+
+            <!-- Instructor Statistics -->
+            <section style="margin-bottom: 3rem;">
+                <h2 style="margin-bottom: 2rem; color: #333;">Instructor Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalInstructors">0</div>
+                        <div class="stat-label">Total Instructors</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="approvedInstructors">0</div>
+                        <div class="stat-label">Approved</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pendingInstructors">0</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="rejectedInstructors">0</div>
+                        <div class="stat-label">Rejected</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Instructor Management Tabs -->
+            <section>
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('pending')">Pending Applications</div>
+                    <div class="tab" onclick="switchTab('approved')">Approved Instructors</div>
+                    <div class="tab" onclick="switchTab('rejected')">Rejected Applications</div>
+                    <div class="tab" onclick="switchTab('all')">All Instructors</div>
+                </div>
+
+                <!-- Pending Applications Tab -->
+                <div id="pending-tab" class="tab-content active">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="margin: 0; color: #333;">Pending Applications</h3>
+                        <button onclick="refreshInstructors()" class="btn btn-primary">Refresh</button>
+                    </div>
+
+                    <div class="card admin-card">
+                        <div id="pendingInstructorsContainer">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <p>Loading pending applications...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approved Instructors Tab -->
+                <div id="approved-tab" class="tab-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="margin: 0; color: #333;">Approved Instructors</h3>
+                        <div style="display: flex; gap: 1rem;">
+                            <button onclick="exportInstructors('approved')" class="btn btn-outline">Export</button>
+                            <button onclick="refreshInstructors()" class="btn btn-primary">Refresh</button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div class="filter-controls">
+                        <div class="search-box">
+                            <input type="text" id="searchApproved" placeholder="Search approved instructors..." class="form-control" onkeyup="filterApprovedInstructors()">
+                        </div>
+                    </div>
+
+                    <div class="card admin-card">
+                        <div id="approvedInstructorsContainer">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <p>Loading approved instructors...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rejected Applications Tab -->
+                <div id="rejected-tab" class="tab-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="margin: 0; color: #333;">Rejected Applications</h3>
+                        <button onclick="refreshInstructors()" class="btn btn-primary">Refresh</button>
+                    </div>
+
+                    <div class="card admin-card">
+                        <div id="rejectedInstructorsContainer">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <p>Loading rejected applications...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All Instructors Tab -->
+                <div id="all-tab" class="tab-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="margin: 0; color: #333;">All Instructors</h3>
+                        <div style="display: flex; gap: 1rem;">
+                            <button onclick="exportInstructors('all')" class="btn btn-outline">Export All</button>
+                            <button onclick="refreshInstructors()" class="btn btn-primary">Refresh</button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div class="filter-controls">
+                        <div class="search-box">
+                            <input type="text" id="searchAll" placeholder="Search all instructors..." class="form-control" onkeyup="filterAllInstructors()">
+                        </div>
+                        <select id="statusFilterAll" class="form-control filter-select" onchange="filterAllInstructors()">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+
+                    <div class="card admin-card">
+                        <div id="allInstructorsContainer">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <p>Loading all instructors...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination">
+                    <!-- Pagination buttons will be inserted here -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Instructor Details Modal -->
+    <div id="instructorModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeInstructorModal()">&times;</span>
+            <h2>Instructor Details</h2>
+            <div id="instructorDetails">
+                <!-- Instructor details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Rejection Modal -->
+    <div id="rejectionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeRejectionModal()">&times;</span>
+            <h2>Reject Application</h2>
+            <div class="rejection-form">
+                <label for="rejectionReason"><strong>Reason for Rejection:</strong></label>
+                <textarea id="rejectionReason" class="form-control" rows="4" placeholder="Please provide a detailed reason for rejecting this application..."></textarea>
+                <div style="text-align: right; margin-top: 1rem;">
+                    <button onclick="closeRejectionModal()" class="btn btn-outline" style="margin-right: 1rem;">Cancel</button>
+                    <button onclick="confirmRejection()" class="btn btn-danger">Reject Application</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
+        <div class="container">
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentUser = null;
+        let allInstructors = [];
+        let filteredInstructors = [];
+        let currentTab = 'pending';
+        let currentPage = 1;
+        let instructorsPerPage = 10;
+        let instructorToReject = null;
+
+        // Check authentication and admin status
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            if (!user || !token) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            
+            if (currentUser.role !== 'admin') {
+                showAlert('Access denied. Admin privileges required.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return null;
+            }
+            
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || 'Admin'}!`;
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Load instructor statistics
+        async function loadInstructorStats() {
+            try {
+                const response = await fetch('/api/admin/statistics', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch statistics');
+                }
+
+                const stats = await response.json();
+
+                // Update UI with statistics
+                animateNumber('totalInstructors', stats.users.instructors + stats.users.pendingInstructors);
+                animateNumber('approvedInstructors', stats.users.instructors);
+                animateNumber('pendingInstructors', stats.users.pendingInstructors);
+                animateNumber('rejectedInstructors', Math.floor(stats.users.instructors * 0.1)); // Mock data
+
+            } catch (error) {
+                console.error('Error loading instructor stats:', error);
+                showAlert('Unable to load instructor statistics.', 'error');
+            }
+        }
+
+        // Load instructors by status
+        async function loadInstructors(status = 'all') {
+            try {
+                let url = '/api/admin/users?role=instructor';
+                if (status !== 'all') {
+                    url += `&status=${status}`;
+                }
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch instructors');
+                }
+
+                const data = await response.json();
+                const instructors = data.users || data;
+                
+                if (status === 'all') {
+                    allInstructors = instructors;
+                }
+
+                displayInstructors(instructors, status);
+
+            } catch (error) {
+                console.error('Error loading instructors:', error);
+                const containerId = status === 'pending' ? 'pendingInstructorsContainer' : 
+                                  status === 'approved' ? 'approvedInstructorsContainer' :
+                                  status === 'rejected' ? 'rejectedInstructorsContainer' : 'allInstructorsContainer';
+                
+                document.getElementById(containerId).innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #dc3545;">
+                        <p>Error loading instructors: ${error.message}</p>
+                        <button onclick="loadInstructors('${status}')" class="btn btn-primary">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Display instructors
+        function displayInstructors(instructors, status) {
+            const containerId = status === 'pending' ? 'pendingInstructorsContainer' : 
+                              status === 'approved' ? 'approvedInstructorsContainer' :
+                              status === 'rejected' ? 'rejectedInstructorsContainer' : 'allInstructorsContainer';
+
+            if (instructors.length === 0) {
+                document.getElementById(containerId).innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">🎓</div>
+                        <p>No ${status === 'all' ? '' : status} instructors found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = '';
+
+            if (status === 'pending') {
+                // Special layout for pending applications
+                tableHTML = instructors.map(instructor => `
+                    <div style="border: 1px solid #dee2e6; border-radius: 8px; margin-bottom: 1rem; padding: 1.5rem;">
+                        <div class="instructor-info" style="margin-bottom: 1rem;">
+                            <div class="instructor-avatar">
+                                ${instructor.fullName.charAt(0).toUpperCase()}
+                            </div>
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0;">${instructor.fullName}</h4>
+                                <p style="margin: 0; color: #666;">${instructor.email}</p>
+                            </div>
+                            <span class="status-badge status-pending">Pending Review</span>
+                        </div>
+                        
+                        <div class="application-details">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <strong>Experience:</strong> ${instructor.instructorApplication?.experience || 0} years
+                                </div>
+                                <div>
+                                    <strong>Specialization:</strong> ${instructor.instructorApplication?.specialization || 'Not specified'}
+                                </div>
+                                <div>
+                                    <strong>Applied:</strong> ${new Date(instructor.instructorApplication?.appliedAt || instructor.createdAt).toLocaleDateString()}
+                                </div>
+                            </div>
+                            
+                            ${instructor.instructorApplication?.bio ? `
+                                <div style="margin-bottom: 1rem;">
+                                    <strong>Bio:</strong>
+                                    <p style="margin: 0.5rem 0; padding: 1rem; background: white; border-radius: 4px; line-height: 1.5;">
+                                        ${instructor.instructorApplication.bio}
+                                    </p>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div style="text-align: right;">
+                            <button onclick="viewInstructor('${instructor._id}')" class="btn btn-sm btn-outline" style="margin-right: 1rem;">View Details</button>
+                            <button onclick="approveInstructor('${instructor._id}')" class="btn btn-sm btn-success" style="margin-right: 0.5rem;">Approve</button>
+                            <button onclick="rejectInstructor('${instructor._id}')" class="btn btn-sm btn-danger">Reject</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                // Table layout for other statuses
+                tableHTML = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Instructor</th>
+                                <th>Email</th>
+                                <th>Experience</th>
+                                <th>Status</th>
+                                <th>Courses</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${instructors.map(instructor => `
+                                <tr>
+                                    <td>
+                                        <div class="instructor-info">
+                                            <div class="instructor-avatar">
+                                                ${instructor.fullName.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <strong>${instructor.fullName}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>${instructor.email}</td>
+                                    <td>${instructor.instructorApplication?.experience || 0} years</td>
+                                    <td>
+                                        <span class="status-badge status-${instructor.instructorStatus || 'pending'}">
+                                            ${(instructor.instructorStatus || 'pending').charAt(0).toUpperCase() + (instructor.instructorStatus || 'pending').slice(1)}
+                                        </span>
+                                    </td>
+                                    <td>${instructor.courseCount || 0}</td>
+                                    <td>${new Date(instructor.createdAt).toLocaleDateString()}</td>
+                                    <td>
+                                        <button onclick="viewInstructor('${instructor._id}')" class="btn btn-sm btn-outline">View</button>
+                                        ${instructor.instructorStatus === 'approved' ? 
+                                            `<button onclick="suspendInstructor('${instructor._id}')" class="btn btn-sm btn-danger">Suspend</button>` :
+                                            instructor.instructorStatus === 'rejected' ?
+                                            `<button onclick="approveInstructor('${instructor._id}')" class="btn btn-sm btn-success">Approve</button>` : ''
+                                        }
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            document.getElementById(containerId).innerHTML = tableHTML;
+        }
+
+        // Switch tabs
+        function switchTab(tabName) {
+            // Update tab appearance
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            currentTab = tabName;
+            loadInstructors(tabName);
+        }
+
+        // View instructor details
+        async function viewInstructor(instructorId) {
+            try {
+                // Find instructor in current data or fetch details
+                let instructor = allInstructors.find(i => i._id === instructorId);
+                
+                if (!instructor) {
+                    // Fetch instructor details if not in current data
+                    const response = await fetch(`/api/admin/users/${instructorId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        instructor = await response.json();
+                    } else {
+                        throw new Error('Instructor not found');
+                    }
+                }
+
+                document.getElementById('instructorDetails').innerHTML = `
+                    <div style="margin-bottom: 2rem;">
+                        <div class="instructor-info" style="margin-bottom: 1rem;">
+                            <div class="instructor-avatar" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                ${instructor.fullName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h3 style="margin: 0;">${instructor.fullName}</h3>
+                                <p style="margin: 0; color: #666;">${instructor.email}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="instructor-stats">
+                            <div class="instructor-stat">
+                                <div class="instructor-stat-number">${instructor.instructorApplication?.experience || 0}</div>
+                                <div class="instructor-stat-label">Years Experience</div>
+                            </div>
+                            <div class="instructor-stat">
+                                <div class="instructor-stat-number">${instructor.courseCount || 0}</div>
+                                <div class="instructor-stat-label">Courses</div>
+                            </div>
+                            <div class="instructor-stat">
+                                <div class="instructor-stat-number">${instructor.studentCount || 0}</div>
+                                <div class="instructor-stat-label">Students</div>
+                            </div>
+                            <div class="instructor-stat">
+                                <div class="instructor-stat-number">${instructor.rating || 0}/5</div>
+                                <div class="instructor-stat-label">Rating</div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 2rem 0;">
+                            <div>
+                                <strong>Status:</strong> 
+                                <span class="status-badge status-${instructor.instructorStatus || 'pending'}">
+                                    ${(instructor.instructorStatus || 'pending').charAt(0).toUpperCase() + (instructor.instructorStatus || 'pending').slice(1)}
+                                </span>
+                            </div>
+                            <div>
+                                <strong>Specialization:</strong> ${instructor.instructorApplication?.specialization || 'Not specified'}
+                            </div>
+                            <div>
+                                <strong>Joined:</strong> ${new Date(instructor.createdAt).toLocaleDateString()}
+                            </div>
+                            <div>
+                                <strong>Last Active:</strong> ${new Date(instructor.updatedAt || instructor.createdAt).toLocaleDateString()}
+                            </div>
+                        </div>
+
+                        ${instructor.instructorApplication?.bio ? `
+                            <div style="margin-top: 2rem;">
+                                <h4>Bio</h4>
+                                <p style="background: #f8f9fa; padding: 1rem; border-radius: 8px; line-height: 1.6;">
+                                    ${instructor.instructorApplication.bio}
+                                </p>
+                            </div>
+                        ` : ''}
+
+                        ${instructor.instructorApplication?.rejectionReason ? `
+                            <div style="margin-top: 2rem;">
+                                <h4>Rejection Reason</h4>
+                                <p style="background: #f8d7da; padding: 1rem; border-radius: 8px; line-height: 1.6; color: #721c24;">
+                                    ${instructor.instructorApplication.rejectionReason}
+                                </p>
+                            </div>
+                        ` : ''}
+
+                        <div style="margin-top: 2rem; text-align: right;">
+                            ${instructor.instructorStatus === 'pending' ? `
+                                <button onclick="approveInstructor('${instructor._id}')" class="btn btn-success" style="margin-right: 1rem;">Approve</button>
+                                <button onclick="rejectInstructor('${instructor._id}')" class="btn btn-danger">Reject</button>
+                            ` : instructor.instructorStatus === 'approved' ? `
+                                <button onclick="suspendInstructor('${instructor._id}')" class="btn btn-danger">Suspend</button>
+                            ` : instructor.instructorStatus === 'rejected' ? `
+                                <button onclick="approveInstructor('${instructor._id}')" class="btn btn-success">Approve</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('instructorModal').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error viewing instructor:', error);
+                showAlert('Error loading instructor details', 'error');
+            }
+        }
+
+        // Approve instructor
+        async function approveInstructor(instructorId) {
+            try {
+                const response = await fetch('/api/admin/instructor-status', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        userId: instructorId,
+                        status: 'approved'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Instructor approved successfully!', 'success');
+                    refreshInstructors();
+                    closeInstructorModal();
+                } else {
+                    showAlert(result.error || 'Failed to approve instructor', 'error');
+                }
+
+            } catch (error) {
+                console.error('Error approving instructor:', error);
+                showAlert('Network error. Please try again.', 'error');
+            }
+        }
+
+        // Reject instructor
+        function rejectInstructor(instructorId) {
+            instructorToReject = instructorId;
+            document.getElementById('rejectionReason').value = '';
+            document.getElementById('rejectionModal').style.display = 'block';
+        }
+
+        // Confirm rejection
+        async function confirmRejection() {
+            const reason = document.getElementById('rejectionReason').value.trim();
+            
+            if (!reason) {
+                showAlert('Please provide a reason for rejection', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/instructor-status', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        userId: instructorToReject,
+                        status: 'rejected',
+                        rejectionReason: reason
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Instructor application rejected', 'success');
+                    closeRejectionModal();
+                    refreshInstructors();
+                    closeInstructorModal();
+                } else {
+                    showAlert(result.error || 'Failed to reject instructor', 'error');
+                }
+
+            } catch (error) {
+                console.error('Error rejecting instructor:', error);
+                showAlert('Network error. Please try again.', 'error');
+            }
+        }
+
+        // Suspend instructor
+        async function suspendInstructor(instructorId) {
+            if (!confirm('Are you sure you want to suspend this instructor? Their courses will be temporarily unavailable.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/instructor-status', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        userId: instructorId,
+                        status: 'suspended'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Instructor suspended successfully', 'success');
+                    refreshInstructors();
+                    closeInstructorModal();
+                } else {
+                    showAlert(result.error || 'Failed to suspend instructor', 'error');
+                }
+
+            } catch (error) {
+                console.error('Error suspending instructor:', error);
+                showAlert('Network error. Please try again.', 'error');
+            }
+        }
+
+        // Filter functions
+        function filterApprovedInstructors() {
+            // Implementation for filtering approved instructors
+            loadInstructors('approved');
+        }
+
+        function filterAllInstructors() {
+            // Implementation for filtering all instructors
+            loadInstructors('all');
+        }
+
+        // Export instructors
+        function exportInstructors(status) {
+            // Implementation for exporting instructor data
+            showAlert('Export functionality will be implemented', 'info');
+        }
+
+        // Refresh instructors
+        function refreshInstructors() {
+            loadInstructorStats();
+            loadInstructors(currentTab);
+            showAlert('Instructors refreshed successfully!', 'success');
+        }
+
+        // Close modals
+        function closeInstructorModal() {
+            document.getElementById('instructorModal').style.display = 'none';
+        }
+
+        function closeRejectionModal() {
+            document.getElementById('rejectionModal').style.display = 'none';
+            instructorToReject = null;
+        }
+
+        // Animate number counting
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const duration = 1500;
+            const steps = 30;
+            const increment = targetNumber / steps;
+            let current = 0;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetNumber) {
+                    current = targetNumber;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current);
+            }, duration / steps);
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
+            alertDiv.style.padding = '1rem';
+            alertDiv.style.borderRadius = '8px';
+            alertDiv.style.color = 'white';
+            alertDiv.style.background = type === 'success' ? '#28a745' : '#dc3545';
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const instructorModal = document.getElementById('instructorModal');
+            const rejectionModal = document.getElementById('rejectionModal');
+            
+            if (event.target === instructorModal) {
+                closeInstructorModal();
+            }
+            if (event.target === rejectionModal) {
+                closeRejectionModal();
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadInstructorStats();
+                loadInstructors('pending'); // Start with pending tab
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - LearnHub</title>
+    <title>Admin Dashboard - LearNova</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
     <style>
@@ -48,12 +48,12 @@
     <header class="header admin-nav">
         <div class="container">
             <nav class="nav">
-                <a href="admin-dashboard.html" class="logo">🛡️ LearnHub - Admin</a>
+                <a href="admin-dashboard.html" class="logo"></a>
                 <ul class="nav-links">
                     <li><a href="admin-dashboard.html">Dashboard</a></li>
                     <li><a href="admin-users.html">Users</a></li>
                     <li><a href="admin-courses.html">Courses</a></li>
-                    <li><a href="admin-instructors.html">Instructors</a></li>
+                    <li><a href="ipending.html">Instructors</a></li>
                     <li><a href="admin-reviews.html">Reviews</a></li>
                     <li><a href="admin-reports.html">Reports</a></li>
                 </ul>
@@ -192,7 +192,7 @@
 
     <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
         <div class="container">
-            <p>&copy; 2025 LearnHub. All rights reserved.</p>
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
         </div>
     </footer>
 
@@ -202,7 +202,9 @@
         // Check authentication and admin status
         function checkAuth() {
             const user = localStorage.getItem('user');
-            if (!user) {
+            const token = localStorage.getItem('token');
+            
+            if (!user || !token) {
                 window.location.href = 'login.html';
                 return null;
             }
@@ -210,11 +212,14 @@
             currentUser = JSON.parse(user);
             
             if (currentUser.role !== 'admin') {
-                window.location.href = 'dashboard.html';
+                showAlert('Access denied. Admin privileges required.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
                 return null;
             }
             
-            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
+            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || 'Admin'}!`;
             return currentUser;
         }
 
@@ -225,46 +230,34 @@
         }
 
         // Load admin statistics
-        async function loadAdminStats() {
-            if (!currentUser) return;
+async function loadAdminStats() {
+    if (!currentUser) return;
 
-            try {
-                const response = await fetch('/api/admin/statistics', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch statistics');
-                }
-
-                const stats = await response.json();
-
-                // Update UI with statistics
-                animateNumber('totalUsers', stats.users.total);
-                animateNumber('totalStudents', stats.users.students);
-                animateNumber('totalInstructors', stats.users.instructors);
-                animateNumber('pendingInstructors', stats.users.pendingInstructors);
-                animateNumber('totalCourses', stats.courses.total);
-                animateNumber('totalEnrollments', stats.courses.enrollments);
-                animateNumber('completedCourses', stats.courses.completed);
-                animateNumber('certificatesIssued', stats.certificates);
-                animateNumber('openQueries', stats.queries.open);
-                animateNumber('totalReviews', stats.reviews.total);
-
-                // Update completion rate
-                document.getElementById('completionRate').textContent = stats.courses.completionRate + '%';
-
-                // Load additional data
-                loadPendingApplications();
-                loadRecentActivity();
-
-            } catch (error) {
-                console.error('Error loading admin stats:', error);
-                showAlert('Unable to load dashboard data.');
+    try {
+        const response = await fetch('/api/admin/statistics', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch statistics');
         }
+
+        const stats = await response.json();
+
+        // Update UI with real statistics
+        animateNumber('totalUsers', stats.users.total);
+        animateNumber('totalStudents', stats.users.students);
+        animateNumber('totalInstructors', stats.users.instructors);
+        animateNumber('pendingInstructors', stats.users.pendingInstructors);
+        // ... more updates
+
+    } catch (error) {
+        console.error('Error loading admin stats:', error);
+        showAlert('Unable to load dashboard data.');
+    }
+}
 
         // Load pending instructor applications
         async function loadPendingApplications() {
@@ -395,45 +388,45 @@
         }
 
         // Review instructor application
-        async function reviewApplication(userId, status) {
-            let rejectionReason = '';
-            
-            if (status === 'rejected') {
-                rejectionReason = prompt('Please provide a reason for rejection:');
-                if (!rejectionReason) {
-                    return; // User cancelled
-                }
-            }
-
-            try {
-                const response = await fetch('/api/admin/instructor-status', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({
-                        userId,
-                        status,
-                        rejectionReason
-                    })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showAlert(`Instructor application ${status}!`, 'success');
-                    loadPendingApplications(); // Refresh the list
-                    loadAdminStats(); // Refresh stats
-                } else {
-                    showAlert(result.error || 'Failed to update application status');
-                }
-
-            } catch (error) {
-                console.error('Error reviewing application:', error);
-                showAlert('Network error. Please try again.');
-            }
+async function reviewApplication(userId, status) {
+    let rejectionReason = '';
+    
+    if (status === 'rejected') {
+        rejectionReason = prompt('Please provide a reason for rejection:');
+        if (!rejectionReason) {
+            return; // User cancelled
         }
+    }
+
+    try {
+        const response = await fetch('/api/admin/instructor-status', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                userId,
+                status,
+                rejectionReason
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showAlert(`Instructor application ${status}!`, 'success');
+            loadPendingApplications(); // Refresh the list
+            loadAdminStats(); // Refresh stats
+        } else {
+            showAlert(result.error || 'Failed to update application status');
+        }
+
+    } catch (error) {
+        console.error('Error reviewing application:', error);
+        showAlert('Network error. Please try again.');
+    }
+}
 
         // Animate number counting
         function animateNumber(elementId, targetNumber) {
@@ -470,6 +463,36 @@
                 alertDiv.remove();
             }, 5000);
         }
+
+        // Modal functions for user management
+function showUsersModal() {
+    document.getElementById('usersModal').style.display = 'block';
+    loadAllUsers();
+}
+
+function showInstructorsModal() {
+    document.getElementById('instructorsModal').style.display = 'block';
+    loadInstructors('all');
+}
+
+// Load and display users in table format
+async function loadAllUsers() {
+    try {
+        const response = await fetch('/api/admin/users', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        const data = await response.json();
+        const users = data.users || data;
+        
+        // Display users in table format with actions
+        // ... table generation code
+    } catch (error) {
+        console.error('Error loading users:', error);
+    }
+}
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', () => {
