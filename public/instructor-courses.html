@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Courses - LearNova Instructor</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
     <style>
         .instructor-nav {
@@ -63,6 +64,53 @@
             display: flex;
             gap: 0.5rem;
             margin-top: 1rem;
+        }
+        .course-actions .btn {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .course-actions .btn-outline {
+            background: #f8f9fa;
+            color: #495057;
+            border: 1px solid #dee2e6;
+        }
+        .course-actions .btn-outline:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+        .course-actions .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .course-actions .btn-primary:hover {
+            background: #5a6fd8;
+        }
+        /* Responsive button adjustments */
+        @media (max-width: 768px) {
+            .course-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .course-actions .btn {
+                flex: none !important;
+                width: 100%;
+            }
+        }
+        @media (max-width: 480px) {
+            .course-card {
+                padding: 1rem;
+            }
+            .course-actions .btn {
+                padding: 0.6rem 0.5rem;
+                font-size: 0.8rem;
+            }
         }
         .filter-section {
             background: white;
@@ -223,24 +271,7 @@
     </style>
 </head>
 <body>
-    <header class="header instructor-nav">
-        <div class="container">
-            <nav class="nav">
-                <a href="instructor-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
-                <ul class="nav-links">
-                    <li><a href="instructor-dashboard.html">Dashboard</a></li>
-                    <li><a href="instructor-courses.html" class="active">My Courses</a></li>
-                    <li><a href="instructor-create-course.html">Create Course</a></li>
-                    <li><a href="instructor-students.html">Students</a></li>
-                    <li><a href="instructor-queries.html">Q&A</a></li>
-                </ul>
-                <div class="user-info">
-                    <span id="userWelcome">Welcome!</span>
-                    <button class="logout-btn" onclick="logout()">Logout</button>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <!-- Modern navbar will be inserted here by navbar.js -->
 
     <main class="main-content">
         <div class="container">
@@ -415,7 +446,8 @@
 
         // Check authentication and instructor status
         function checkAuth() {
-            const user = localStorage.getItem('user');
+            // Try both 'user' and 'userData' keys for compatibility with navbar
+            const user = localStorage.getItem('userData') || localStorage.getItem('user');
             const token = localStorage.getItem('token');
             
             if (!user || !token) {
@@ -433,13 +465,18 @@
                 return null;
             }
             
-            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || currentUser.username}!`;
+            // Update UI with safety checks
+            const userWelcomeElement = document.getElementById('userWelcome');
+            if (userWelcomeElement) {
+                userWelcomeElement.textContent = `Welcome, ${currentUser.fullName || currentUser.name || currentUser.username || 'Instructor'}!`;
+            }
             return currentUser;
         }
 
         // Logout function
         function logout() {
             localStorage.removeItem('user');
+            localStorage.removeItem('userData');
             localStorage.removeItem('token');
             window.location.href = 'index.html';
         }
@@ -518,8 +555,9 @@
 
             return `
                 <div class="course-card">
-                    <img src="${course.image || 'data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 300 200\\"><rect width=\\"300\\" height=\\"200\\" fill=\\"%23f0f0f0\\"/><text x=\\"150\\" y=\\"100\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"16\\">Course Image</text></svg>'}" 
-                         alt="${course.name}" class="course-image">
+                        <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='150' viewBox='0 0 400 150'><rect width='400' height='150' fill='%23667eea'/><text x='200' y='75' text-anchor='middle' dy='0.35em' fill='white' font-size='16' font-family='Arial'>📚 Learnova</text></svg>" alt="${course.courseName || 'Course'}" 
+                                     style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
+
                     
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
                         <h3 style="margin: 0; color: #333; flex: 1; margin-right: 1rem;">${course.name}</h3>
@@ -547,13 +585,13 @@
                     </div>
 
                     <div class="course-actions">
-                        <button onclick="viewCourseDetails('${course._id}')" class="btn btn-outline" style="flex: 1;">
-                            👁️ View
-                        </button>
-                        <button onclick="editCourse('${course._id}')" class="btn btn-primary" style="flex: 1;">
+                        <a href="instructor-course-details.html?courseId=${course._id}" class="btn btn-outline" style="flex: 2; text-decoration: none; display: flex; align-items: center; justify-content: center; min-width: 0;">
+                            👁️ <span style="margin-left: 0.20rem;">View</span>
+                        </a>
+                        <button onclick="editCourse('${course._id}')" class="btn btn-primary" style="flex: 1; min-width: 0;">
                             ✏️ Edit
                         </button>
-                        <button onclick="deleteCourse('${course._id}')" class="btn" style="background: #dc3545; color: white; flex: 1;">
+                        <button onclick="deleteCourse('${course._id}')" class="btn" style="background: #dc3545; color: white; flex: 1; min-width: 0;" onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
                             🗑️ Delete
                         </button>
                     </div>
@@ -721,23 +759,8 @@
 
         // Edit course
         function editCourse(courseId) {
-            const course = allCourses.find(c => c._id === courseId);
-            if (!course) return;
-
-            courseToEdit = course;
-            
-            // Populate form
-            document.getElementById('editCourseName').value = course.name || '';
-            document.getElementById('editCourseDescription').value = course.shortDescription || course.description || '';
-            document.getElementById('editCoursePrice').value = course.price || 0;
-            document.getElementById('editCourseCategory').value = course.category || '';
-            document.getElementById('editCourseLevel').value = course.level || '';
-
-            // Close details modal if open
-            closeModal('courseDetailsModal');
-            
-            // Open edit modal
-            document.getElementById('editCourseModal').style.display = 'block';
+            // Redirect to instructor create course page in edit mode
+            window.location.href = `instructor-create-course.html?courseId=${courseId}&mode=edit`;
         }
 
         // Handle edit course form submission
@@ -899,6 +922,9 @@
             }
         });
     </script>
+
+    <!-- Modern Navbar Script -->
+    <script src="navbar.js"></script>
 </body>
 </html>
 

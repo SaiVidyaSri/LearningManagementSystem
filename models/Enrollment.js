@@ -99,7 +99,36 @@ const enrollmentSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
-    modules: [moduleProgressSchema]
+    modules: [moduleProgressSchema],
+    // Final exam progress
+    finalExamCompleted: {
+      type: Boolean,
+      default: false
+    },
+    finalExamPassed: {
+      type: Boolean,
+      default: false
+    },
+    finalExamScore: {
+      type: Number,
+      default: 0
+    },
+    finalExamAttempts: {
+      type: Number,
+      default: 0
+    },
+    finalExamDate: Date,
+    // Course completion
+    courseCompleted: {
+      type: Boolean,
+      default: false
+    },
+    completedAt: Date,
+    // Certificate
+    certificateGenerated: {
+      type: Boolean,
+      default: false
+    }
   },
   quizAttempts: [quizAttemptSchema],
   finalExamScore: {

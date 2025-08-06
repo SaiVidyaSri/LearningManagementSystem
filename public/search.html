@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - LearNova</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .search-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+        .search-box {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            padding: 1rem 3rem 1rem 1rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            outline: none;
+        }
+        .search-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+        }
+        .filters {
+            background: white;
+            padding: 2rem 0;
+            border-bottom: 1px solid #e1e5e9;
+        }
+        .filter-tags {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        .filter-tag {
+            background: #f8f9ff;
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .filter-tag.active {
+            background: #667eea;
+            color: white;
+        }
+        .search-results {
+            padding: 2rem 0;
+        }
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .sort-dropdown {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .course-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        .course-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .course-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        .course-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+        }
+        .course-content {
+            padding: 1.5rem;
+        }
+        .course-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .price-tag {
+            background: #28a745;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+        .no-results {
+            text-align: center;
+            padding: 4rem 0;
+            color: #666;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 3rem;
+        }
+        .page-btn {
+            padding: 0.8rem 1.2rem;
+            border: 1px solid #ddd;
+            background: white;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .page-btn:hover, .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <a href="index.html" class="logo">📚 LearNova</a>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="courses.html">Courses</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+                <div class="user-info" id="userInfo">
+                    <a href="login.html" class="btn btn-outline">Login</a>
+                    <a href="register.html" class="btn btn-primary">Sign Up</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Search Header -->
+    <section class="search-header">
+        <div class="container">
+            <h1 style="text-align: center; margin-bottom: 2rem;">Search Courses</h1>
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search for courses, topics, or instructors...">
+                <button class="search-btn" onclick="performSearch()">🔍</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="filters">
+        <div class="container">
+            <h3 style="margin-bottom: 1rem; color: #333;">Filter by Category</h3>
+            <div class="filter-tags" id="categoryFilters">
+                <div class="filter-tag active" data-category="all">All Categories</div>
+                <div class="filter-tag" data-category="Programming">Programming</div>
+                <div class="filter-tag" data-category="Web Development">Web Development</div>
+                <div class="filter-tag" data-category="Data Science">Data Science</div>
+                <div class="filter-tag" data-category="Design">Design</div>
+                <div class="filter-tag" data-category="Business">Business</div>
+                <div class="filter-tag" data-category="Marketing">Marketing</div>
+            </div>
+            
+            <h3 style="margin: 2rem 0 1rem; color: #333;">Filter by Level</h3>
+            <div class="filter-tags" id="levelFilters">
+                <div class="filter-tag active" data-level="all">All Levels</div>
+                <div class="filter-tag" data-level="Beginner">Beginner</div>
+                <div class="filter-tag" data-level="Intermediate">Intermediate</div>
+                <div class="filter-tag" data-level="Advanced">Advanced</div>
+            </div>
+
+            <h3 style="margin: 2rem 0 1rem; color: #333;">Filter by Price</h3>
+            <div class="filter-tags" id="priceFilters">
+                <div class="filter-tag active" data-price="all">All Prices</div>
+                <div class="filter-tag" data-price="free">Free</div>
+                <div class="filter-tag" data-price="paid">Paid</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search Results -->
+    <section class="search-results">
+        <div class="container">
+            <div class="results-header">
+                <div>
+                    <h2 id="resultsTitle">Search Results</h2>
+                    <p id="resultsCount" style="color: #666; margin-top: 0.5rem;">Loading courses...</p>
+                </div>
+                <select class="sort-dropdown" id="sortDropdown" onchange="sortResults()">
+                    <option value="relevance">Sort by Relevance</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="newest">Newest First</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="popular">Most Popular</option>
+                </select>
+            </div>
+
+            <div class="course-grid" id="courseGrid">
+                <!-- Courses will be loaded here -->
+            </div>
+
+            <div class="no-results" id="noResults" style="display: none;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🔍</div>
+                <h3>No courses found</h3>
+                <p>Try adjusting your search terms or filters</p>
+                <button onclick="clearFilters()" class="btn btn-primary" style="margin-top: 1rem;">Clear All Filters</button>
+            </div>
+
+            <div class="pagination" id="pagination" style="display: none;">
+                <!-- Pagination will be added here -->
+            </div>
+        </div>
+    </section>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center;">
+        <div class="container">
+            <p>&copy; 2025 LearNova. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let allCourses = [];
+        let filteredCourses = [];
+        let currentPage = 1;
+        const coursesPerPage = 12;
+        let currentFilters = {
+            category: 'all',
+            level: 'all',
+            price: 'all',
+            search: ''
+        };
+
+        // Check authentication
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (token && user.email) {
+            document.getElementById('userInfo').innerHTML = `
+                <span>Welcome, ${user.fullName}</span>
+                <a href="dashboard.html" class="btn btn-outline">Dashboard</a>
+                <button onclick="logout()" class="btn btn-outline">Logout</button>
+            `;
+        }
+
+        // Get search query from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchQuery = urlParams.get('q') || '';
+        if (searchQuery) {
+            document.getElementById('searchInput').value = searchQuery;
+            currentFilters.search = searchQuery;
+        }
+
+        // Load courses on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCourses();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Category filters
+            document.querySelectorAll('#categoryFilters .filter-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    document.querySelectorAll('#categoryFilters .filter-tag').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilters.category = this.dataset.category;
+                    applyFilters();
+                });
+            });
+
+            // Level filters
+            document.querySelectorAll('#levelFilters .filter-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    document.querySelectorAll('#levelFilters .filter-tag').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilters.level = this.dataset.level;
+                    applyFilters();
+                });
+            });
+
+            // Price filters
+            document.querySelectorAll('#priceFilters .filter-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    document.querySelectorAll('#priceFilters .filter-tag').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilters.price = this.dataset.price;
+                    applyFilters();
+                });
+            });
+
+            // Search input
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+        }
+
+        async function loadCourses() {
+            try {
+                const response = await fetch('/api/courses');
+                if (response.ok) {
+                    allCourses = await response.json();
+                    applyFilters();
+                } else {
+                    // Fallback to demo data if API is not available
+                    allCourses = getDemoCourses();
+                    applyFilters();
+                }
+            } catch (error) {
+                console.error('Error loading courses:', error);
+                // Use demo data as fallback
+                allCourses = getDemoCourses();
+                applyFilters();
+            }
+        }
+
+        function getDemoCourses() {
+            return [
+                {
+                    _id: '1',
+                    name: 'Complete JavaScript Course',
+                    shortDescription: 'Learn JavaScript from basics to advanced concepts',
+                    category: 'Programming',
+                    level: 'Beginner',
+                    price: 49.99,
+                    averageRating: 4.8,
+                    enrollmentCount: 1250,
+                    duration: 8,
+                    instructorName: 'John Smith'
+                },
+                {
+                    _id: '2',
+                    name: 'React Development Masterclass',
+                    shortDescription: 'Build modern web applications with React',
+                    category: 'Web Development',
+                    level: 'Intermediate',
+                    price: 79.99,
+                    averageRating: 4.9,
+                    enrollmentCount: 890,
+                    duration: 12,
+                    instructorName: 'Sarah Johnson'
+                },
+                {
+                    _id: '3',
+                    name: 'Data Science with Python',
+                    shortDescription: 'Master data analysis and machine learning',
+                    category: 'Data Science',
+                    level: 'Advanced',
+                    price: 0,
+                    averageRating: 4.7,
+                    enrollmentCount: 2100,
+                    duration: 16,
+                    instructorName: 'Dr. Michael Chen'
+                },
+                {
+                    _id: '4',
+                    name: 'UI/UX Design Fundamentals',
+                    shortDescription: 'Learn to create beautiful user interfaces',
+                    category: 'Design',
+                    level: 'Beginner',
+                    price: 39.99,
+                    averageRating: 4.6,
+                    enrollmentCount: 750,
+                    duration: 6,
+                    instructorName: 'Emily Davis'
+                },
+                {
+                    _id: '5',
+                    name: 'Digital Marketing Strategy',
+                    shortDescription: 'Comprehensive digital marketing course',
+                    category: 'Marketing',
+                    level: 'Intermediate',
+                    price: 59.99,
+                    averageRating: 4.5,
+                    enrollmentCount: 640,
+                    duration: 10,
+                    instructorName: 'Mark Wilson'
+                },
+                {
+                    _id: '6',
+                    name: 'Business Analytics',
+                    shortDescription: 'Make data-driven business decisions',
+                    category: 'Business',
+                    level: 'Advanced',
+                    price: 89.99,
+                    averageRating: 4.8,
+                    enrollmentCount: 420,
+                    duration: 14,
+                    instructorName: 'Lisa Anderson'
+                }
+            ];
+        }
+
+        function performSearch() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            currentFilters.search = searchTerm;
+            currentPage = 1;
+            applyFilters();
+        }
+
+        function applyFilters() {
+            filteredCourses = allCourses.filter(course => {
+                // Category filter
+                if (currentFilters.category !== 'all' && course.category !== currentFilters.category) {
+                    return false;
+                }
+
+                // Level filter
+                if (currentFilters.level !== 'all' && course.level !== currentFilters.level) {
+                    return false;
+                }
+
+                // Price filter
+                if (currentFilters.price === 'free' && course.price > 0) {
+                    return false;
+                }
+                if (currentFilters.price === 'paid' && course.price === 0) {
+                    return false;
+                }
+
+                // Search filter
+                if (currentFilters.search) {
+                    const searchLower = currentFilters.search.toLowerCase();
+                    return course.name.toLowerCase().includes(searchLower) ||
+                           course.shortDescription.toLowerCase().includes(searchLower) ||
+                           course.category.toLowerCase().includes(searchLower) ||
+                           (course.instructorName && course.instructorName.toLowerCase().includes(searchLower));
+                }
+
+                return true;
+            });
+
+            sortResults();
+            displayResults();
+            updateResultsCount();
+        }
+
+        function sortResults() {
+            const sortBy = document.getElementById('sortDropdown').value;
+            
+            filteredCourses.sort((a, b) => {
+                switch (sortBy) {
+                    case 'rating':
+                        return (b.averageRating || 0) - (a.averageRating || 0);
+                    case 'newest':
+                        return new Date(b.createdAt || Date.now()) - new Date(a.createdAt || Date.now());
+                    case 'price-low':
+                        return (a.price || 0) - (b.price || 0);
+                    case 'price-high':
+                        return (b.price || 0) - (a.price || 0);
+                    case 'popular':
+                        return (b.enrollmentCount || 0) - (a.enrollmentCount || 0);
+                    default: // relevance
+                        return 0;
+                }
+            });
+
+            displayResults();
+        }
+
+        function displayResults() {
+            const courseGrid = document.getElementById('courseGrid');
+            const noResults = document.getElementById('noResults');
+            
+            if (filteredCourses.length === 0) {
+                courseGrid.style.display = 'none';
+                noResults.style.display = 'block';
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+
+            courseGrid.style.display = 'grid';
+            noResults.style.display = 'none';
+
+            // Pagination
+            const startIndex = (currentPage - 1) * coursesPerPage;
+            const endIndex = startIndex + coursesPerPage;
+            const coursesToShow = filteredCourses.slice(startIndex, endIndex);
+
+            courseGrid.innerHTML = coursesToShow.map(course => createCourseCard(course)).join('');
+            updatePagination();
+        }
+
+        function createCourseCard(course) {
+            const rating = '⭐'.repeat(Math.floor(course.averageRating || 0));
+            const priceDisplay = course.price === 0 ? 'Free' : `$${course.price}`;
+            
+            return `
+                <div class="course-card">
+                    <div class="course-image">📚</div>
+                    <div class="course-content">
+                        <div class="course-meta">
+                            <span class="category">${course.category}</span>
+                            <span class="price-tag">${priceDisplay}</span>
+                        </div>
+                        <h3 style="color: #333; margin-bottom: 0.5rem;">${course.name}</h3>
+                        <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">${course.shortDescription}</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <span style="color: #666; font-size: 0.9rem;">by ${course.instructorName || 'Instructor'}</span>
+                            <span style="font-size: 0.9rem;">${rating} (${course.averageRating || 0})</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #999; margin-bottom: 1rem;">
+                            <span>${course.enrollmentCount || 0} students</span>
+                            <span>${course.duration || 0} weeks</span>
+                            <span>${course.level}</span>
+                        </div>
+                        <a href="course-details.html?id=${course._id}" class="btn btn-primary w-100">View Course</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateResultsCount() {
+            const count = filteredCourses.length;
+            const searchTerm = currentFilters.search;
+            
+            let title = 'Search Results';
+            if (searchTerm) {
+                title = `Search Results for "${searchTerm}"`;
+            }
+            
+            document.getElementById('resultsTitle').textContent = title;
+            document.getElementById('resultsCount').textContent = `${count} course${count !== 1 ? 's' : ''} found`;
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+
+            pagination.style.display = 'flex';
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            if (currentPage > 1) {
+                paginationHTML += `<a href="#" class="page-btn" onclick="changePage(${currentPage - 1})">Previous</a>`;
+            }
+            
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    paginationHTML += `<a href="#" class="page-btn active">${i}</a>`;
+                } else {
+                    paginationHTML += `<a href="#" class="page-btn" onclick="changePage(${i})">${i}</a>`;
+                }
+            }
+            
+            // Next button
+            if (currentPage < totalPages) {
+                paginationHTML += `<a href="#" class="page-btn" onclick="changePage(${currentPage + 1})">Next</a>`;
+            }
+            
+            pagination.innerHTML = paginationHTML;
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            displayResults();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function clearFilters() {
+            // Reset all filters
+            currentFilters = {
+                category: 'all',
+                level: 'all',
+                price: 'all',
+                search: ''
+            };
+            
+            // Reset UI
+            document.getElementById('searchInput').value = '';
+            document.querySelectorAll('.filter-tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            document.querySelectorAll('[data-category="all"], [data-level="all"], [data-price="all"]').forEach(tag => {
+                tag.classList.add('active');
+            });
+            document.getElementById('sortDropdown').value = 'relevance';
+            
+            currentPage = 1;
+            applyFilters();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>

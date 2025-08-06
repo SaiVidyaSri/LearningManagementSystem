@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instructor Profile - LearNova</title>
+    <title>Profile - LearNova Instructor</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
     <style>
         .instructor-nav {
@@ -218,25 +219,7 @@
     </style>
 </head>
 <body>
-    <header class="header instructor-nav">
-        <div class="container">
-            <nav class="nav">
-                <a href="instructor-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
-                <ul class="nav-links">
-                    <li><a href="instructor-dashboard.html">Dashboard</a></li>
-                    <li><a href="instructor-courses.html">My Courses</a></li>
-                    <li><a href="instructor-create-course.html">Create Course</a></li>
-                    <li><a href="instructor-students.html">Students</a></li>
-                    <li><a href="instructor-queries.html">Q&A</a></li>
-                    <li><a href="instructor-profile.html" class="active">Profile</a></li>
-                </ul>
-                <div class="user-info">
-                    <span id="userWelcome">Welcome!</span>
-                    <button class="logout-btn" onclick="logout()">Logout</button>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <!-- Modern navbar will be inserted here by navbar.js -->
 
     <main class="main-content">
         <div class="container">
@@ -294,7 +277,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="email">Email Address</label>
-                                <input type="email" id="email" placeholder="your.email@example.com" readonly>
+                                <input type="email" id="email" placeholder="your.email@example.com">
                             </div>
                             <div class="form-group">
                                 <label for="phone">Phone Number</label>
@@ -482,7 +465,8 @@
 
         // Check authentication and instructor status
         function checkAuth() {
-            const user = localStorage.getItem('user');
+            // Try both 'user' and 'userData' keys for compatibility with navbar
+            const user = localStorage.getItem('userData') || localStorage.getItem('user');
             const token = localStorage.getItem('token');
             
             if (!user || !token) {
@@ -500,13 +484,18 @@
                 return null;
             }
             
-            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || currentUser.username}!`;
+            // Update UI with safety checks
+            const userWelcomeElement = document.getElementById('userWelcome');
+            if (userWelcomeElement) {
+                userWelcomeElement.textContent = `Welcome, ${currentUser.fullName || currentUser.name || currentUser.username || 'Instructor'}!`;
+            }
             return currentUser;
         }
 
         // Logout function
         function logout() {
             localStorage.removeItem('user');
+            localStorage.removeItem('userData');
             localStorage.removeItem('token');
             window.location.href = 'index.html';
         }
@@ -520,18 +509,84 @@
                     }
                 });
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch profile');
+                if (response.ok) {
+                    const profile = await response.json();
+                    populateProfile(profile);
+                } else {
+                    // If API fails, populate with basic data from localStorage
+                    console.warn('API failed, using localStorage data');
+                    populateProfileFromLocalStorage();
                 }
-
-                const profile = await response.json();
-                populateProfile(profile);
+                
                 loadStatistics();
                 loadAchievements();
                 
             } catch (error) {
                 console.error('Error loading profile:', error);
-                showAlert('Failed to load profile. Please try again.', 'error');
+                // Fallback to localStorage data
+                populateProfileFromLocalStorage();
+                showAlert('Using cached profile data. Some information may be incomplete.', 'warning');
+            }
+        }
+
+        // Populate profile from localStorage as fallback
+        function populateProfileFromLocalStorage() {
+            if (currentUser) {
+                // Header information
+                const profileNameElement = document.getElementById('profileName');
+                const profileTitleElement = document.getElementById('profileTitle');
+                const profileRatingElement = document.getElementById('profileRating');
+                
+                if (profileNameElement) {
+                    profileNameElement.textContent = currentUser.fullName || currentUser.name || currentUser.username || 'Instructor';
+                }
+                if (profileTitleElement) {
+                    profileTitleElement.textContent = currentUser.jobTitle || 'Course Instructor';
+                }
+                if (profileRatingElement) {
+                    profileRatingElement.textContent = `⭐ ${currentUser.averageRating || 'New'} Rating`;
+                }
+                
+                // Profile avatar
+                const avatar = document.getElementById('profileAvatar');
+                if (avatar) {
+                    if (currentUser.profileImage) {
+                        avatar.innerHTML = `<img src="${currentUser.profileImage}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                    } else {
+                        const initials = currentUser.fullName ? 
+                            currentUser.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 
+                            (currentUser.name ? currentUser.name[0].toUpperCase() : currentUser.username[0].toUpperCase());
+                        avatar.textContent = initials;
+                    }
+                }
+
+                // Personal information - populate form fields
+                const fullNameField = document.getElementById('fullName');
+                const emailField = document.getElementById('email');
+                const phoneField = document.getElementById('phone');
+                const locationField = document.getElementById('location');
+                const bioField = document.getElementById('bio');
+                
+                if (fullNameField) fullNameField.value = currentUser.fullName || currentUser.name || '';
+                if (emailField) emailField.value = currentUser.email || '';
+                if (phoneField) phoneField.value = currentUser.phone || '';
+                if (locationField) locationField.value = currentUser.location || '';
+                if (bioField) bioField.value = currentUser.bio || '';
+
+                // Professional information
+                const jobTitleField = document.getElementById('jobTitle');
+                const organizationField = document.getElementById('organization');
+                const expertiseField = document.getElementById('expertise');
+                const experienceField = document.getElementById('experience');
+                const educationField = document.getElementById('education');
+                const certificationField = document.getElementById('certifications');
+                
+                if (jobTitleField) jobTitleField.value = currentUser.jobTitle || '';
+                if (organizationField) organizationField.value = currentUser.organization || '';
+                if (expertiseField) expertiseField.value = currentUser.expertise || '';
+                if (experienceField) experienceField.value = currentUser.experience || '';
+                if (educationField) educationField.value = currentUser.education || '';
+                if (certificationField) certificationField.value = currentUser.certifications || '';
             }
         }
 
@@ -861,6 +916,7 @@
                     case 'personal':
                         data = {
                             fullName: document.getElementById('fullName').value.trim(),
+                            email: document.getElementById('email').value.trim(),
                             phone: document.getElementById('phone').value.trim(),
                             location: document.getElementById('location').value.trim(),
                             bio: document.getElementById('bio').value.trim()
@@ -923,6 +979,16 @@
                     throw new Error('Failed to save profile');
                 }
 
+                const result = await response.json();
+                
+                // Update localStorage with new data
+                if (result.user) {
+                    const currentUserData = JSON.parse(localStorage.getItem('userData') || localStorage.getItem('user') || '{}');
+                    const updatedUserData = { ...currentUserData, ...result.user };
+                    localStorage.setItem('userData', JSON.stringify(updatedUserData));
+                    localStorage.setItem('user', JSON.stringify(updatedUserData));
+                }
+
                 showAlert(`${section.charAt(0).toUpperCase() + section.slice(1)} information saved successfully!`, 'success');
                 
                 if (section === 'social') {
@@ -969,7 +1035,7 @@
         // Show alert message
         function showAlert(message, type = 'error') {
             const alertDiv = document.createElement('div');
-            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : type === 'info' ? 'alert-info' : 'alert-error'}`;
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : type === 'info' ? 'alert-info' : type === 'warning' ? 'alert-warning' : 'alert-error'}`;
             alertDiv.textContent = message;
             alertDiv.style.position = 'fixed';
             alertDiv.style.top = '20px';
@@ -979,7 +1045,7 @@
             alertDiv.style.padding = '1rem';
             alertDiv.style.borderRadius = '8px';
             alertDiv.style.color = 'white';
-            alertDiv.style.background = type === 'success' ? '#28a745' : type === 'info' ? '#17a2b8' : '#dc3545';
+            alertDiv.style.background = type === 'success' ? '#28a745' : type === 'info' ? '#17a2b8' : type === 'warning' ? '#ffc107' : '#dc3545';
             
             document.body.appendChild(alertDiv);
             
@@ -995,6 +1061,9 @@
             }
         });
     </script>
+
+    <!-- Modern Navbar Script -->
+    <script src="navbar.js"></script>
 </body>
 </html>
 

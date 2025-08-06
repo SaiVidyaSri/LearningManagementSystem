@@ -11,7 +11,7 @@
     <header class="header">
         <div class="container">
             <nav class="nav">
-                <a href="index.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
+                <a href="index.html" class="logo"><img src="/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
                 <ul class="nav-links" id="navLinks">
                     <li><a href="index.html">Home</a></li>
                     <li><a href="courses.html">Courses</a></li>
@@ -113,7 +113,7 @@
         // Get course name from URL
         function getCourseNameFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('course');
+            return urlParams.get('course') || urlParams.get('courseId');
         }
 
         // Check if user is logged in
@@ -132,7 +132,7 @@
             
             if (currentUser) {
                 navLinks.innerHTML = `
-                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="student-dashboard.html">Dashboard</a></li>
                     <li><a href="courses.html">Courses</a></li>
                     <li><a href="my-courses.html">My Courses</a></li>
                     <li><a href="progress.html">Progress</a></li>
@@ -148,28 +148,40 @@
         // Logout function
         function logout() {
             localStorage.removeItem('user');
+            localStorage.removeItem('token');
             window.location.href = 'index.html';
         }
 
         // Load course details
         async function loadCourseDetails() {
-            if (!courseName) {
-                window.location.href = 'courses.html';
+            console.log('=== LOADING COURSE DETAILS ===');
+            const courseParam = getCourseNameFromURL();
+            console.log('Course parameter from URL:', courseParam);
+            
+            if (!courseParam) {
+                console.log('No course parameter found in URL');
+                document.getElementById('courseHeader').innerHTML = '<p style="color: #dc3545;">Course not specified.</p>';
                 return;
             }
 
             try {
-                const response = await fetch(`/api/courses/${encodeURIComponent(courseName)}`);
+                console.log('Fetching course details for:', courseParam);
+                const response = await fetch('/api/courses/' + encodeURIComponent(courseParam));
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
+                    console.log('Response not OK:', response.status, response.statusText);
                     throw new Error('Course not found');
                 }
                 
                 currentCourse = await response.json();
+                console.log('Course data received:', currentCourse);
+                
                 displayCourseHeader();
                 displayCourseDescription();
                 displayCourseModules();
-                displayCourseInfo();
                 displayEnrollmentCard();
+                displayCourseInfo();
                 
                 // Check enrollment status if user is logged in
                 if (currentUser) {
@@ -177,9 +189,9 @@
                 }
                 
             } catch (error) {
-                console.error('Error loading course details:', error);
+                console.error('Error loading course:', error);
                 document.getElementById('courseHeader').innerHTML = 
-                    '<div class="card"><h1 style="color: #dc3545;">Course Not Found</h1><p>The requested course could not be found.</p><a href="courses.html" class="btn btn-primary">Back to Courses</a></div>';
+                    '<p style="color: #dc3545;">Unable to load course details. Please try again later.</p>';
             }
         }
 
@@ -207,9 +219,8 @@
                             </div>
                         </div>
                         <div>
-                            <img src="${currentCourse.image}" alt="${currentCourse.name}" 
-                                 style="width: 200px; height: 150px; object-fit: cover; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);"
-                                 onerror="this.src='data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 200 150\\"><rect width=\\"200\\" height=\\"150\\" fill=\\"%23f0f0f0\\"/><text x=\\"100\\" y=\\"75\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"14\\">Course Image</text></svg>'">
+                            <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='150' viewBox='0 0 400 150'><rect width='400' height='150' fill='%23667eea'/><text x='200' y='75' text-anchor='middle' dy='0.35em' fill='white' font-size='16' font-family='Arial'>📚 Learnova</text></svg>" alt="${course.courseName || 'Course'}" 
+                                     style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
                         </div>
                     </div>
                 </div>
@@ -354,17 +365,20 @@
 
         // Check enrollment status
         async function checkEnrollmentStatus() {
-            if (!currentUser) return;
-
+            if (!currentUser || !currentCourse) return;
+            
             try {
-                const response = await fetch(`/api/student-progress-details?username=${encodeURIComponent(currentUser.username)}&email=${encodeURIComponent(currentUser.email)}`);
-                const enrolledCourses = await response.json();
+                const response = await fetch(`/api/enrollment-status/${currentCourse._id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
                 
-                const enrollment = enrolledCourses.find(course => course.courseName === courseName);
+                const result = await response.json();
                 
-                if (enrollment) {
+                if (result.enrolled) {
                     isEnrolled = true;
-                    userProgress = enrollment;
+                    userProgress = result.enrollment;
                     updateEnrolledState();
                     displayProgress();
                 }
@@ -440,10 +454,11 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
                     body: JSON.stringify({
-                        courseName: courseName,
-                        username: currentUser.username
+                        courseId: currentCourse._id,
+                        courseName: currentCourse.name
                     })
                 });
                 
@@ -453,9 +468,9 @@
                     isEnrolled = true;
                     updateEnrolledState();
                     displayCourseModules();
-                    showAlert('Successfully enrolled in ' + courseName + '!', 'success');
+                    showAlert('Successfully enrolled in ' + currentCourse.name + '!', 'success');
                 } else {
-                    showAlert(result.message || 'Enrollment failed. Please try again.');
+                    showAlert(result.error || 'Enrollment failed. Please try again.');
                     enrollBtn.disabled = false;
                     enrollBtn.textContent = 'Enroll Now';
                 }
@@ -503,7 +518,6 @@
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', () => {
-            courseName = getCourseNameFromURL();
             checkAuth();
             loadCourseDetails();
         });

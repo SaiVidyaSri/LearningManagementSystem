@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Students - LearNova Instructor</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
     <style>
         .instructor-nav {
@@ -233,27 +234,35 @@
         .tab-content.active {
             display: block;
         }
+        .exam-results {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .exam-score {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .exam-passed {
+            background: #d4edda;
+            color: #155724;
+        }
+        .exam-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .exam-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
-    <header class="header instructor-nav">
-        <div class="container">
-            <nav class="nav">
-                <a href="instructor-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
-                <ul class="nav-links">
-                    <li><a href="instructor-dashboard.html">Dashboard</a></li>
-                    <li><a href="instructor-courses.html">My Courses</a></li>
-                    <li><a href="instructor-create-course.html">Create Course</a></li>
-                    <li><a href="instructor-students.html" class="active">Students</a></li>
-                    <li><a href="instructor-queries.html">Q&A</a></li>
-                </ul>
-                <div class="user-info">
-                    <span id="userWelcome">Welcome!</span>
-                    <button class="logout-btn" onclick="logout()">Logout</button>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <!-- Modern navbar will be inserted here by navbar.js -->
 
     <main class="main-content">
         <div class="container">
@@ -283,6 +292,14 @@
                     <div class="stat-card">
                         <div class="stat-number" id="averageProgress">0%</div>
                         <div class="stat-label">Average Progress</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="certificatesIssued">0</div>
+                        <div class="stat-label">Certificates Issued</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="failedCourses">0</div>
+                        <div class="stat-label">Failed Courses</div>
                     </div>
                 </div>
             </section>
@@ -373,79 +390,69 @@
     </footer>
 
     <script>
+
+        // --- Modernized Instructor Students Page Logic ---
         let currentUser = null;
         let allStudents = [];
         let filteredStudents = [];
-        let instructorCourses = [];
         let currentTab = 'all';
 
         // Check authentication and instructor status
         function checkAuth() {
-            const user = localStorage.getItem('user');
+            // Try both 'user' and 'userData' keys for compatibility with navbar
+            const user = localStorage.getItem('userData') || localStorage.getItem('user');
             const token = localStorage.getItem('token');
-            
             if (!user || !token) {
                 window.location.href = 'login.html';
                 return null;
             }
-            
-            currentUser = JSON.parse(user);
-            
-            if (currentUser.role !== 'instructor') {
+            let parsedUser;
+            try {
+                parsedUser = JSON.parse(user);
+            } catch (e) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            if (parsedUser.role !== 'instructor') {
                 showAlert('Access denied. Instructor privileges required.', 'error');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
+                setTimeout(() => window.location.href = 'login.html', 2000);
                 return null;
             }
             
-            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.fullName || currentUser.username}!`;
-            return currentUser;
+            // Update UI with safety checks
+            const userWelcomeElement = document.getElementById('userWelcome');
+            if (userWelcomeElement) {
+                userWelcomeElement.textContent = `Welcome, ${parsedUser.fullName || parsedUser.name || parsedUser.username || 'Instructor'}!`;
+            }
+            return parsedUser;
         }
 
         // Logout function
         function logout() {
             localStorage.removeItem('user');
+            localStorage.removeItem('userData');
             localStorage.removeItem('token');
             window.location.href = 'index.html';
         }
 
-        // Load instructor's students
+        // Fetch students from backend
         async function loadStudents() {
             try {
-                // First, get instructor's courses
-                const coursesResponse = await fetch('/api/instructor/courses', {
+                const res = await fetch('/api/instructor/students', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
-
-                if (!coursesResponse.ok) {
-                    throw new Error('Failed to fetch courses');
+                if (!res.ok) {
+                    const err = await res.text();
+                    throw new Error(err || 'Failed to fetch students');
                 }
-
-                instructorCourses = await coursesResponse.json();
-                populateCourseFilter();
-
-                // Get students enrolled in instructor's courses
-                const studentsResponse = await fetch('/api/instructor/students', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-
-                if (!studentsResponse.ok) {
-                    throw new Error('Failed to fetch students');
-                }
-
-                allStudents = await studentsResponse.json();
+                const data = await res.json();
+                allStudents = Array.isArray(data) ? data : [];
                 filteredStudents = [...allStudents];
-                
                 updateStatistics();
                 displayStudents();
-                
-            } catch (error) {
-                console.error('Error loading students:', error);
+            } catch (err) {
                 showAlert('Failed to load students. Please try again.', 'error');
                 displayEmptyState();
             }
@@ -475,18 +482,31 @@
             }).length;
             
             const completedCourses = allStudents.reduce((sum, student) => {
-                return sum + student.enrollments.filter(enrollment => enrollment.progress === 100).length;
+                return sum + (student.statistics ? student.statistics.completedCourses : 
+                    student.enrollments.filter(enrollment => enrollment.progress === 100).length);
+            }, 0);
+            
+            const certificatesIssued = allStudents.reduce((sum, student) => {
+                return sum + (student.statistics ? student.statistics.certificatesEarned : 
+                    student.enrollments.filter(enrollment => enrollment.hasCertificate).length);
+            }, 0);
+            
+            const failedCourses = allStudents.reduce((sum, student) => {
+                return sum + (student.statistics ? student.statistics.failedCourses : 
+                    student.enrollments.filter(enrollment => enrollment.isFailed).length);
             }, 0);
             
             const averageProgress = totalStudents > 0 ? 
                 Math.round(allStudents.reduce((sum, student) => {
-                    const avgProgress = student.enrollments.reduce((progSum, enrollment) => progSum + enrollment.progress, 0) / student.enrollments.length;
-                    return sum + avgProgress;
+                    return sum + (student.statistics ? student.statistics.averageProgress : 
+                        (student.enrollments.length > 0 ? student.enrollments.reduce((progSum, enrollment) => progSum + enrollment.progress, 0) / student.enrollments.length : 0));
                 }, 0) / totalStudents) : 0;
 
             animateNumber('totalStudents', totalStudents);
             animateNumber('activeStudents', activeStudents);
             animateNumber('completedCourses', completedCourses);
+            animateNumber('certificatesIssued', certificatesIssued);
+            animateNumber('failedCourses', failedCourses);
             document.getElementById('averageProgress').textContent = `${averageProgress}%`;
         }
 
@@ -520,14 +540,20 @@
                     
                 case 'completed':
                     filteredStudents = allStudents.filter(student => {
+                        if (student.statistics) {
+                            return student.statistics.completedCourses > 0;
+                        }
                         return student.enrollments.some(enrollment => enrollment.progress === 100);
                     });
                     break;
                     
                 case 'struggling':
                     filteredStudents = allStudents.filter(student => {
-                        const avgProgress = student.enrollments.reduce((sum, enrollment) => sum + enrollment.progress, 0) / student.enrollments.length;
-                        return avgProgress < 30 && student.enrollments.length > 0;
+                        const avgProgress = student.statistics ? student.statistics.averageProgress : 
+                            (student.enrollments.length > 0 ? 
+                                student.enrollments.reduce((sum, enrollment) => sum + enrollment.progress, 0) / student.enrollments.length : 0);
+                        const totalCourses = student.statistics ? student.statistics.totalCourses : student.enrollments.length;
+                        return avgProgress < 30 && totalCourses > 0;
                     });
                     break;
                     
@@ -558,10 +584,16 @@
 
         // Create student card HTML
         function createStudentCard(student) {
-            const totalEnrollments = student.enrollments.length;
-            const completedCourses = student.enrollments.filter(e => e.progress === 100).length;
-            const averageProgress = totalEnrollments > 0 ? 
-                Math.round(student.enrollments.reduce((sum, e) => sum + e.progress, 0) / totalEnrollments) : 0;
+            // Handle both new API format (with statistics) and old format (direct enrollments)
+            const totalEnrollments = student.statistics ? student.statistics.totalCourses : student.enrollments.length;
+            const completedCourses = student.statistics ? student.statistics.completedCourses : 
+                student.enrollments.filter(e => e.isCompleted || e.progress === 100).length;
+            const failedCourses = student.statistics ? student.statistics.failedCourses : 
+                student.enrollments.filter(e => e.isFailed).length;
+            const certificates = student.statistics ? student.statistics.certificatesEarned : 
+                student.enrollments.filter(e => e.hasCertificate).length;
+            const averageProgress = student.statistics ? student.statistics.averageProgress : 
+                (totalEnrollments > 0 ? Math.round(student.enrollments.reduce((sum, e) => sum + e.progress, 0) / totalEnrollments) : 0);
             
             const lastActive = new Date(student.lastActive).toLocaleDateString();
             const initials = student.fullName ? student.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : student.username[0].toUpperCase();
@@ -586,10 +618,16 @@
                                 <div class="student-stat-label">Completed</div>
                             </div>
                             <div class="student-stat">
-                                <div class="student-stat-number">${averageProgress}%</div>
-                                <div class="student-stat-label">Avg Progress</div>
+                                <div class="student-stat-number">${certificates}</div>
+                                <div class="student-stat-label">Certificates</div>
                             </div>
                         </div>
+                        
+                        ${failedCourses > 0 ? `
+                            <div style="background: #f8d7da; color: #721c24; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0; font-size: 0.8rem; text-align: center;">
+                                ⚠️ ${failedCourses} Failed Course${failedCourses > 1 ? 's' : ''}
+                            </div>
+                        ` : ''}
                         
                         <div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
@@ -630,9 +668,44 @@
             container.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">👥</div>
-                    <h3 style="margin-bottom: 1rem; color: #333;">No students found</h3>
-                    <p style="margin-bottom: 2rem;">Students will appear here once they enroll in your courses.</p>
-                    <a href="instructor-courses.html" class="btn btn-primary">View My Courses</a>
+                    <h3 style="margin-bottom: 1rem; color: #333;">No students enrolled yet</h3>
+                    <p style="margin-bottom: 2rem;">Students will appear here once they enroll in your courses. Create courses first and share them with students to get started.</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <a href="instructor-courses.html" class="btn btn-primary">View My Courses</a>
+                        <a href="instructor-create-course.html" class="btn btn-outline">Create New Course</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display no courses state
+        function displayNoCoursesState() {
+            const container = document.getElementById('studentsContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📚</div>
+                    <h3 style="margin-bottom: 1rem; color: #333;">No courses created yet</h3>
+                    <p style="margin-bottom: 2rem;">You need to create courses before students can enroll. Start by creating your first course!</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <a href="instructor-create-course.html" class="btn btn-primary">Create Your First Course</a>
+                        <a href="instructor-dashboard.html" class="btn btn-outline">Go to Dashboard</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display error state
+        function displayErrorState(errorMessage) {
+            const container = document.getElementById('studentsContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    <h3 style="margin-bottom: 1rem; color: #dc3545;">Error Loading Data</h3>
+                    <p style="margin-bottom: 2rem; color: #666;">There was an issue loading the student data: ${errorMessage}</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <button onclick="loadStudents()" class="btn btn-primary">Try Again</button>
+                        <a href="instructor-dashboard.html" class="btn btn-outline">Go to Dashboard</a>
+                    </div>
                 </div>
             `;
         }
@@ -669,7 +742,9 @@
             if (progressFilter) {
                 const [min, max] = progressFilter.split('-').map(Number);
                 filtered = filtered.filter(student => {
-                    const avgProgress = student.enrollments.reduce((sum, e) => sum + e.progress, 0) / student.enrollments.length;
+                    const avgProgress = student.statistics ? student.statistics.averageProgress : 
+                        (student.enrollments.length > 0 ? 
+                            student.enrollments.reduce((sum, e) => sum + e.progress, 0) / student.enrollments.length : 0);
                     return avgProgress >= min && avgProgress <= max;
                 });
             }
@@ -693,8 +768,10 @@
                         const nameB = b.fullName || b.username;
                         return nameA.localeCompare(nameB);
                     case 'progress':
-                        const progressA = a.enrollments.reduce((sum, e) => sum + e.progress, 0) / a.enrollments.length;
-                        const progressB = b.enrollments.reduce((sum, e) => sum + e.progress, 0) / b.enrollments.length;
+                        const progressA = a.statistics ? a.statistics.averageProgress : 
+                            (a.enrollments.length > 0 ? a.enrollments.reduce((sum, e) => sum + e.progress, 0) / a.enrollments.length : 0);
+                        const progressB = b.statistics ? b.statistics.averageProgress : 
+                            (b.enrollments.length > 0 ? b.enrollments.reduce((sum, e) => sum + e.progress, 0) / b.enrollments.length : 0);
                         return progressB - progressA;
                     case 'lastActive':
                         return new Date(b.lastActive) - new Date(a.lastActive);
@@ -713,65 +790,27 @@
 
             const modal = document.getElementById('studentDetailsModal');
             const content = document.getElementById('studentDetailsContent');
-            
-            const totalEnrollments = student.enrollments.length;
-            const completedCourses = student.enrollments.filter(e => e.progress === 100).length;
-            const averageProgress = totalEnrollments > 0 ? 
-                Math.round(student.enrollments.reduce((sum, e) => sum + e.progress, 0) / totalEnrollments) : 0;
+
+            const enrollmentsHtml = student.enrollments.map(enrollment => {
+                const examsHtml = (enrollment.lessonExams && enrollment.lessonExams.length > 0)
+                    ? `<ul style="margin-left:1.5em;">${enrollment.lessonExams.map(exam => `
+                        <li><strong>${exam.title}</strong> (Module ${exam.moduleIndex + 1}, Lesson ${exam.lessonIndex + 1})</li>
+                    `).join('')}</ul>`
+                    : '<em>No lesson exams for this course.</em>';
+
+                return `
+                    <div style="margin-bottom:1.5em; padding:1em; border:1px solid #eee; border-radius:8px;">
+                        <h3 style="margin-bottom:0.5em; color:#667eea;">${enrollment.courseName}</h3>
+                        <p>Progress: <strong>${enrollment.progress}%</strong></p>
+                        <div><strong>Lesson Exams:</strong> ${examsHtml}</div>
+                    </div>
+                `;
+            }).join('');
 
             content.innerHTML = `
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <div class="student-avatar" style="margin: 0 auto;">
-                        ${student.fullName ? student.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : student.username[0].toUpperCase()}
-                    </div>
-                    <h3 style="margin: 1rem 0 0.5rem 0; color: #333;">${student.fullName || student.username}</h3>
-                    <p style="color: #666;">${student.email}</p>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
-                    <div class="student-stat">
-                        <div class="student-stat-number" style="font-size: 1.5rem;">${totalEnrollments}</div>
-                        <div class="student-stat-label">Courses Enrolled</div>
-                    </div>
-                    <div class="student-stat">
-                        <div class="student-stat-number" style="font-size: 1.5rem;">${completedCourses}</div>
-                        <div class="student-stat-label">Completed</div>
-                    </div>
-                    <div class="student-stat">
-                        <div class="student-stat-number" style="font-size: 1.5rem;">${averageProgress}%</div>
-                        <div class="student-stat-label">Average Progress</div>
-                    </div>
-                </div>
-
-                <h4 style="margin-bottom: 1rem; color: #333;">Course Enrollments</h4>
-                ${student.enrollments.map(enrollment => {
-                    const course = instructorCourses.find(c => c._id === enrollment.courseId);
-                    return `
-                        <div class="course-enrollment">
-                            <h4>${course ? course.name : 'Unknown Course'}</h4>
-                            <div class="enrollment-details">
-                                <div><strong>Progress:</strong> ${enrollment.progress}%</div>
-                                <div><strong>Enrolled:</strong> ${new Date(enrollment.enrolledAt).toLocaleDateString()}</div>
-                                <div><strong>Last Activity:</strong> ${new Date(enrollment.lastAccessed).toLocaleDateString()}</div>
-                                <div><strong>Status:</strong> ${enrollment.progress === 100 ? 'Completed' : 'In Progress'}</div>
-                            </div>
-                            <div class="progress-bar" style="margin-top: 0.5rem;">
-                                <div class="progress-fill" style="width: ${enrollment.progress}%;"></div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-
-                <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.9rem; color: #666;">
-                    <div><strong>Joined:</strong> ${new Date(student.createdAt).toLocaleDateString()}</div>
-                    <div><strong>Last Active:</strong> ${new Date(student.lastActive).toLocaleDateString()}</div>
-                    ${student.bio ? `<div style="margin-top: 0.5rem;"><strong>Bio:</strong> ${student.bio}</div>` : ''}
-                </div>
-
-                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
-                    <button onclick="closeModal('studentDetailsModal')" class="btn btn-outline">Close</button>
-                    <button onclick="messageStudent('${student._id}')" class="btn btn-primary">Send Message</button>
-                </div>
+                <h2>${student.fullName || student.username}</h2>
+                <p>Email: ${student.email}</p>
+                <div>${enrollmentsHtml}</div>
             `;
 
             modal.style.display = 'block';
@@ -839,11 +878,16 @@
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', () => {
-            if (checkAuth()) {
+            const authResult = checkAuth();
+            if (authResult) {
+                currentUser = authResult;
                 loadStudents();
             }
         });
     </script>
+
+    <!-- Modern Navbar Script -->
+    <script src="navbar.js"></script>
 </body>
 </html>
 

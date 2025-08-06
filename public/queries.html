@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Q&A - LearNova</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
     <style>
         .query-card {
@@ -68,27 +69,20 @@
         .close:hover {
             color: black;
         }
+        .notification-dot {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 12px;
+            height: 12px;
+            background: #dc3545;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
     </style>
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <a href="student-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
-                <ul class="nav-links">
-                    <li><a href="student-dashboard.html">Dashboard</a></li>
-                    <li><a href="courses.html">Browse Courses</a></li>
-                    <li><a href="my-courses.html">My Courses</a></li>
-                    <li><a href="progress.html">Progress</a></li>
-                    <li><a href="queries.html">Q&A</a></li>
-                </ul>
-                <div class="user-info">
-                    <span id="userWelcome">Welcome!</span>
-                    <button class="logout-btn" onclick="logout()">Logout</button>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <!-- Navbar will be inserted here by navbar.js -->
 
     <main class="main-content">
         <div class="container">
@@ -196,14 +190,16 @@
 
         // Check authentication
         function checkAuth() {
-            const user = localStorage.getItem('user');
+            // Check both 'user' and 'userData' for compatibility
+            const user = localStorage.getItem('userData') || localStorage.getItem('user');
             if (!user) {
                 window.location.href = 'login.html';
                 return null;
             }
             
             currentUser = JSON.parse(user);
-            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
+            // Remove this line since navbar will handle the welcome message
+            // document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
             return currentUser;
         }
 
@@ -219,21 +215,49 @@
             if (!currentUser) return;
 
             try {
-                // Load enrolled courses for the dropdown
-                const progressResponse = await fetch(`/api/student-progress-details?username=${currentUser.username}`);
-                if (progressResponse.ok) {
-                    const progressData = await progressResponse.json();
-                    enrolledCourses = progressData;
-                    populateCourseDropdowns();
+                // Load user's queries
+                const queriesResponse = await fetch('/api/student-queries', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (queriesResponse.ok) {
+                    allQueries = await queriesResponse.json();
+                } else {
+                    console.warn('Failed to load queries, using empty array');
+                    allQueries = [];
                 }
 
-                // Load queries (this would need to be implemented in the backend)
-                // For now, we'll show sample data
-                loadSampleQueries();
+                // Load enrolled courses for the dropdown
+                const coursesResponse = await fetch('/api/enrollments', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (coursesResponse.ok) {
+                    const enrollments = await coursesResponse.json();
+                    enrolledCourses = enrollments.map(enrollment => ({
+                        courseId: enrollment.course._id,
+                        courseName: enrollment.course.name
+                    }));
+                } else {
+                    console.warn('Failed to load courses, using empty array');
+                    enrolledCourses = [];
+                }
+
+                populateCourseDropdowns();
+                displayQueries(allQueries);
 
             } catch (error) {
                 console.error('Error loading queries data:', error);
                 showAlert('Unable to load queries data.');
+                // Show empty state
+                allQueries = [];
+                enrolledCourses = [];
+                populateCourseDropdowns();
+                displayQueries(allQueries);
             }
         }
 
@@ -337,14 +361,13 @@
             }
 
             container.innerHTML = queries.map(query => `
-                <div class="query-card" onclick="openQueryModal('${query.id}')">
+                <div class="query-card" onclick="openQueryModal('${query._id}')">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
                         <div style="flex: 1;">
-                            <h4 style="margin: 0 0 0.5rem 0; color: #333; cursor: pointer;">${query.title}</h4>
+                            <h4 style="margin: 0 0 0.5rem 0; color: #333; cursor: pointer;">${query.subject}</h4>
                             <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; color: #666;">
-                                <span>📚 ${query.course}</span>
-                                ${query.moduleIndex ? `<span>📖 Module ${query.moduleIndex}</span>` : ''}
-                                ${query.lessonIndex ? `<span>📝 Lesson ${query.lessonIndex}</span>` : ''}
+                                <span>📚 ${query.course?.name || 'Unknown Course'}</span>
+                                <span>🏷️ ${query.category}</span>
                             </div>
                         </div>
                         <span class="status-badge status-${query.status}">${query.status}</span>
@@ -355,10 +378,10 @@
                     </p>
                     
                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #999;">
-                        <span>Asked by ${query.student.fullName}</span>
+                        <span>Asked by you</span>
                         <div style="display: flex; align-items: center; gap: 1rem;">
-                            <span>💬 ${query.replies.length} replies</span>
-                            <span>${query.createdAt.toLocaleDateString()}</span>
+                            <span>💬 ${query.responses?.length || 0} replies</span>
+                            <span>${new Date(query.createdAt).toLocaleDateString()}</span>
                         </div>
                     </div>
                 </div>
@@ -397,22 +420,20 @@
 
         // Open query details modal
         function openQueryModal(queryId) {
-            const query = allQueries.find(q => q.id === queryId);
+            const query = allQueries.find(q => q._id === queryId);
             if (!query) return;
 
             const modalContent = document.getElementById('queryDetails');
             modalContent.innerHTML = `
                 <div style="margin-bottom: 2rem;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                        <h2 style="margin: 0; color: #333; flex: 1;">${query.title}</h2>
+                        <h2 style="margin: 0; color: #333; flex: 1;">${query.subject}</h2>
                         <span class="status-badge status-${query.status}">${query.status}</span>
                     </div>
                     
                     <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; font-size: 0.9rem; color: #666;">
-                        <span>📚 ${query.course}</span>
-                        ${query.moduleIndex ? `<span>📖 Module ${query.moduleIndex}</span>` : ''}
-                        ${query.lessonIndex ? `<span>📝 Lesson ${query.lessonIndex}</span>` : ''}
-                        <span>📅 ${query.createdAt.toLocaleDateString()}</span>
+                        <span>📚 ${query.courseId ? (enrolledCourses.find(c => c._id === query.courseId)?.title || 'Unknown Course') : 'General'}</span>
+                        <span>📅 ${new Date(query.createdAt).toLocaleDateString()}</span>
                     </div>
                     
                     <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
@@ -420,28 +441,38 @@
                     </div>
                 </div>
 
-                ${query.replies.length > 0 ? `
+                ${query.responses && query.responses.length > 0 ? `
                     <div style="margin-bottom: 2rem;">
-                        <h3 style="margin-bottom: 1rem; color: #333;">Replies (${query.replies.length})</h3>
-                        ${query.replies.map(reply => `
-                            <div class="reply-item ${reply.authorRole === 'instructor' ? 'instructor-reply' : ''}">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                    <strong style="color: #333;">
-                                        ${reply.author.fullName}
-                                        ${reply.authorRole === 'instructor' ? '👨‍🏫' : '👨‍🎓'}
-                                    </strong>
-                                    <span style="font-size: 0.9rem; color: #666;">
-                                        ${reply.createdAt.toLocaleDateString()}
-                                    </span>
+                        <h3 style="margin-bottom: 1rem; color: #333;">Responses (${query.responses.length})</h3>
+                        ${query.responses.map(response => {
+                            const responderName = response.responderName || 
+                                                 (response.responder && response.responder.fullName) || 
+                                                 'Staff Member';
+                            const responderRole = response.responderRole || 'staff';
+                            const responseDate = response.respondedAt ? 
+                                                new Date(response.respondedAt).toLocaleDateString() : 
+                                                'Recently';
+                            const message = response.message || 'No message content';
+                            
+                            return `
+                                <div class="reply-item instructor-reply">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                        <strong style="color: #333;">
+                                            ${responderRole === 'instructor' ? `${responderName} 👨‍🏫` : `${responderName} 👩‍💼`}
+                                        </strong>
+                                        <span style="font-size: 0.9rem; color: #666;">
+                                            ${responseDate}
+                                        </span>
+                                    </div>
+                                    <p style="margin: 0; line-height: 1.5; color: #333;">${message}</p>
                                 </div>
-                                <p style="margin: 0; line-height: 1.5; color: #333;">${reply.content}</p>
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 ` : `
                     <div style="text-align: center; padding: 2rem; color: #666;">
                         <div style="font-size: 2rem; margin-bottom: 1rem;">💭</div>
-                        <p>No replies yet. The instructor will respond soon!</p>
+                        <p>No responses yet. The instructor will respond soon!</p>
                     </div>
                 `}
 
@@ -472,50 +503,44 @@
             submitBtn.textContent = 'Submitting...';
 
             try {
+                const courseSelect = document.getElementById('questionCourse');
+                const selectedCourse = enrolledCourses.find(c => c.courseName === courseSelect.value);
+                
+                if (!selectedCourse) {
+                    throw new Error('Please select a course');
+                }
+
                 const formData = {
-                    courseId: document.getElementById('questionCourse').value,
-                    title: document.getElementById('questionTitle').value,
+                    courseId: selectedCourse.courseId,
+                    subject: document.getElementById('questionTitle').value,
                     description: document.getElementById('questionDescription').value,
-                    moduleIndex: document.getElementById('questionModule').value || null,
-                    lessonIndex: document.getElementById('questionLesson').value || null
+                    category: 'general'
                 };
 
-                // This would be the actual API call
-                // const response = await fetch('/api/submit-query', {
-                //     method: 'POST',
-                //     headers: {
-                //         'Content-Type': 'application/json',
-                //         'Authorization': `Bearer ${localStorage.getItem('token')}`
-                //     },
-                //     body: JSON.stringify(formData)
-                // });
+                const response = await fetch('/api/queries', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(formData)
+                });
 
-                // For demo purposes, we'll simulate success
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                const result = await response.json();
 
-                showAlert('Question submitted successfully! The instructor will respond soon.', 'success');
-                closeAskModal();
-                
-                // Add the new question to the list (simulation)
-                const newQuery = {
-                    id: Date.now().toString(),
-                    title: formData.title,
-                    description: formData.description,
-                    course: formData.courseId,
-                    student: { fullName: currentUser.fullName || currentUser.username },
-                    status: 'open',
-                    moduleIndex: formData.moduleIndex,
-                    lessonIndex: formData.lessonIndex,
-                    createdAt: new Date(),
-                    replies: []
-                };
-                
-                allQueries.unshift(newQuery);
-                displayQueries(allQueries);
+                if (response.ok) {
+                    showAlert('Question submitted successfully! The instructor will respond soon.', 'success');
+                    closeAskModal();
+                    
+                    // Reload queries to show the new one
+                    loadQueriesData();
+                } else {
+                    throw new Error(result.error || 'Failed to submit question');
+                }
 
             } catch (error) {
                 console.error('Error submitting question:', error);
-                showAlert('Failed to submit question. Please try again.');
+                showAlert(error.message || 'Failed to submit question. Please try again.');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit Question';
@@ -560,6 +585,7 @@
             }
         });
     </script>
+    <script src="navbar.js"></script>
 </body>
 </html>
 

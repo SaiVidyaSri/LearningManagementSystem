@@ -23,6 +23,7 @@
         .status-draft { background: #ffc107; color: #000; }
         .status-archived { background: #6c757d; color: white; }
         .status-pending { background: #17a2b8; color: white; }
+        .status-rejected { background: #dc3545; color: white; }
         .data-table {
             width: 100%;
             border-collapse: collapse;
@@ -147,24 +148,24 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
-        .course-stats {
+        .course-stats, .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 1rem;
             margin: 1rem 0;
         }
-        .course-stat {
+        .course-stat, .stat-card {
             text-align: center;
             padding: 1rem;
             background: #f8f9fa;
             border-radius: 8px;
         }
-        .course-stat-number {
+        .course-stat-number, .stat-number {
             font-size: 1.5rem;
             font-weight: bold;
             color: #dc3545;
         }
-        .course-stat-label {
+        .course-stat-label, .stat-label {
             font-size: 0.9rem;
             color: #666;
         }
@@ -174,7 +175,7 @@
     <header class="header admin-nav">
         <div class="container">
             <nav class="nav">
-                <a href="admin-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
+                <a href="admin-dashboard.html" class="logo" style="color: white; text-decoration: none;">📚 LearNova</a>
                 <ul class="nav-links">
                     <li><a href="admin-dashboard.html">Dashboard</a></li>
                     <li><a href="admin-users.html">Users</a></li>
@@ -214,6 +215,14 @@
                         <div class="stat-label">Published</div>
                     </div>
                     <div class="stat-card">
+                        <div class="stat-number" id="pendingCourses">0</div>
+                        <div class="stat-label">Pending Approval</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="rejectedCourses">0</div>
+                        <div class="stat-label">Rejected</div>
+                    </div>
+                    <div class="stat-card">
                         <div class="stat-number" id="draftCourses">0</div>
                         <div class="stat-label">Drafts</div>
                     </div>
@@ -241,8 +250,10 @@
                     </div>
                     <select id="statusFilter" class="form-control filter-select" onchange="filterCourses()">
                         <option value="">All Status</option>
+                        <option value="pending">Pending Review</option>
                         <option value="published">Published</option>
                         <option value="draft">Draft</option>
+                        <option value="rejected">Rejected</option>
                         <option value="archived">Archived</option>
                     </select>
                     <select id="categoryFilter" class="form-control filter-select" onchange="filterCourses()">
@@ -359,8 +370,10 @@
 
                 // Update UI with statistics
                 animateNumber('totalCourses', stats.courses.total);
-                animateNumber('publishedCourses', stats.courses.published || Math.floor(stats.courses.total * 0.7));
-                animateNumber('draftCourses', stats.courses.total - (stats.courses.published || Math.floor(stats.courses.total * 0.7)));
+                animateNumber('publishedCourses', stats.courses.published);
+                animateNumber('pendingCourses', stats.courses.pending);
+                animateNumber('rejectedCourses', stats.courses.rejected);
+                animateNumber('draftCourses', stats.courses.draft);
                 animateNumber('totalEnrollments', stats.courses.enrollments);
 
             } catch (error) {
@@ -372,7 +385,7 @@
         // Load all courses
         async function loadCourses() {
             try {
-                const response = await fetch('/api/courses', {
+                const response = await fetch('/api/admin/courses', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -435,10 +448,10 @@
                                 <td>
                                     <div class="course-info">
                                         <div class="course-thumbnail">
-                                            ${course.title.substring(0, 2).toUpperCase()}
+                                            ${(course.name || course.title || 'Course').substring(0, 2).toUpperCase()}
                                         </div>
                                         <div>
-                                            <strong>${course.title}</strong>
+                                            <strong>${course.name || course.title || 'Untitled Course'}</strong>
                                             <div style="font-size: 0.9rem; color: #666;">
                                                 $${course.price || 0} • ${course.duration || 'N/A'}
                                             </div>
@@ -456,11 +469,17 @@
                                 <td>${new Date(course.createdAt).toLocaleDateString()}</td>
                                 <td>
                                     <button onclick="viewCourse('${course._id}')" class="btn btn-sm btn-outline">View</button>
-                                    ${course.status === 'published' ? 
+                                    ${course.status === 'pending' ? 
+                                        `<button onclick="toggleCourseStatus('${course._id}', 'published')" class="btn btn-sm btn-success">Approve</button>
+                                         <button onclick="toggleCourseStatus('${course._id}', 'rejected')" class="btn btn-sm btn-danger">Reject</button>` :
+                                    course.status === 'rejected' ?
+                                        `<button onclick="toggleCourseStatus('${course._id}', 'published')" class="btn btn-sm btn-success">Approve</button>
+                                         <button onclick="toggleCourseStatus('${course._id}', 'draft')" class="btn btn-sm btn-secondary">Send to Draft</button>` :
+                                    course.status === 'published' ? 
                                         `<button onclick="toggleCourseStatus('${course._id}', 'draft')" class="btn btn-sm btn-warning">Unpublish</button>` :
                                         `<button onclick="toggleCourseStatus('${course._id}', 'published')" class="btn btn-sm btn-success">Publish</button>`
                                     }
-                                    <button onclick="deleteCourse('${course._id}', '${course.title}')" class="btn btn-sm btn-danger">Delete</button>
+                                    <button onclick="deleteCourse('${course._id}', '${course.name || course.title || 'Untitled Course'}')" class="btn btn-sm btn-danger">Delete</button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -478,8 +497,11 @@
             const categoryFilter = document.getElementById('categoryFilter').value;
 
             filteredCourses = allCourses.filter(course => {
-                const matchesSearch = course.title.toLowerCase().includes(searchTerm) || 
-                                    (course.instructor?.fullName || course.instructorName || '').toLowerCase().includes(searchTerm);
+                const courseName = course.name || course.title || '';
+                const instructorName = course.instructor?.fullName || course.instructorName || '';
+                
+                const matchesSearch = courseName.toLowerCase().includes(searchTerm) || 
+                                    instructorName.toLowerCase().includes(searchTerm);
                 const matchesStatus = !statusFilter || course.status === statusFilter;
                 const matchesCategory = !categoryFilter || course.category === categoryFilter;
 
@@ -543,80 +565,158 @@
 
                 document.getElementById('courseDetails').innerHTML = `
                     <div style="margin-bottom: 2rem;">
-                        <div class="course-info" style="margin-bottom: 1rem;">
-                            <div class="course-thumbnail" style="width: 80px; height: 60px; font-size: 1.2rem;">
-                                ${course.title.substring(0, 2).toUpperCase()}
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #eee;">
+                            <div class="course-info">
+                                <div class="course-thumbnail" style="width: 80px; height: 60px; font-size: 1.2rem;">
+                                    ${(course.name || course.title).substring(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                    <h3 style="margin: 0;">${course.name || course.title}</h3>
+                                    <p style="margin: 0; color: #666;">by ${course.instructor?.fullName || course.instructorName || 'Unknown'}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 style="margin: 0;">${course.title}</h3>
-                                <p style="margin: 0; color: #666;">by ${course.instructor?.fullName || course.instructorName || 'Unknown'}</p>
-                            </div>
+                            <span class="status-badge status-${course.status || 'draft'}">
+                                ${(course.status || 'draft').toUpperCase()}
+                            </span>
                         </div>
                         
-                        <div class="course-stats">
-                            <div class="course-stat">
-                                <div class="course-stat-number">${course.enrollmentCount || 0}</div>
-                                <div class="course-stat-label">Enrollments</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                            <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${course.enrollmentCount || 0}</div>
+                                <div style="font-size: 0.8rem; color: #666;">Enrollments</div>
                             </div>
-                            <div class="course-stat">
-                                <div class="course-stat-number">$${course.price || 0}</div>
-                                <div class="course-stat-label">Price</div>
+                            <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">$${course.price || 0}</div>
+                                <div style="font-size: 0.8rem; color: #666;">Price</div>
                             </div>
-                            <div class="course-stat">
-                                <div class="course-stat-number">${course.duration || 'N/A'}</div>
-                                <div class="course-stat-label">Duration</div>
+                            <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #ffc107;">${course.duration || course.estimatedHours || 0}h</div>
+                                <div style="font-size: 0.8rem; color: #666;">Duration</div>
                             </div>
-                            <div class="course-stat">
-                                <div class="course-stat-number">${course.rating || 0}/5</div>
-                                <div class="course-stat-label">Rating</div>
-                            </div>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 2rem 0;">
-                            <div>
-                                <strong>Category:</strong> ${course.category || 'Uncategorized'}
-                            </div>
-                            <div>
-                                <strong>Status:</strong> 
-                                <span class="status-badge status-${course.status || 'draft'}">
-                                    ${(course.status || 'draft').charAt(0).toUpperCase() + (course.status || 'draft').slice(1)}
-                                </span>
-                            </div>
-                            <div>
-                                <strong>Created:</strong> ${new Date(course.createdAt).toLocaleDateString()}
-                            </div>
-                            <div>
-                                <strong>Last Updated:</strong> ${new Date(course.updatedAt || course.createdAt).toLocaleDateString()}
+                            <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #dc3545;">${course.averageRating || 0}/5</div>
+                                <div style="font-size: 0.8rem; color: #666;">Rating</div>
                             </div>
                         </div>
 
-                        <div style="margin-top: 2rem;">
-                            <h4>Description</h4>
-                            <p style="background: #f8f9fa; padding: 1rem; border-radius: 8px; line-height: 1.6;">
-                                ${course.description || 'No description provided.'}
-                            </p>
+                        <div style="display: grid; grid-template-columns: 1fr 200px; gap: 2rem; margin-bottom: 2rem;">
+                            <div>
+                                <div style="margin-bottom: 1rem;">
+                                    <strong>Description:</strong>
+                                    <p style="margin: 0.5rem 0; line-height: 1.6; color: #666; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
+                                        ${course.description || course.shortDescription || 'No description available'}
+                                    </p>
+                                </div>
+                                
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                                    <div><strong>Category:</strong> ${course.category || 'Uncategorized'}</div>
+                                    <div><strong>Level:</strong> ${course.level || 'Not specified'}</div>
+                                    <div><strong>Language:</strong> ${course.language || 'English'}</div>
+                                    <div><strong>Target Audience:</strong> ${course.targetAudience || 'General'}</div>
+                                </div>
+
+                                <div style="margin: 1rem 0;">
+                                    <strong>Created:</strong> ${new Date(course.createdAt).toLocaleDateString()}
+                                    ${course.updatedAt ? `<br><strong>Updated:</strong> ${new Date(course.updatedAt).toLocaleDateString()}` : ''}
+                                </div>
+
+                                ${course.learningOutcomes && course.learningOutcomes.length > 0 ? `
+                                    <div style="margin: 1rem 0;">
+                                        <strong>Learning Outcomes:</strong>
+                                        <ul style="margin: 0.5rem 0; padding-left: 1.5rem; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
+                                            ${course.learningOutcomes.map(outcome => `<li style="margin-bottom: 0.25rem;">${outcome}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                ` : ''}
+
+                                ${course.prerequisites ? `
+                                    <div style="margin: 1rem 0;">
+                                        <strong>Prerequisites:</strong>
+                                        <p style="margin: 0.5rem 0; color: #666; background: #f8f9fa; padding: 1rem; border-radius: 8px;">${course.prerequisites}</p>
+                                    </div>
+                                ` : ''}
+
+                                ${course.tags && course.tags.length > 0 ? `
+                                    <div style="margin: 1rem 0;">
+                                        <strong>Tags:</strong>
+                                        <div style="margin: 0.5rem 0;">
+                                            ${course.tags.map(tag => `<span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.8rem; margin-right: 0.5rem;">${tag}</span>`).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div>
+                                <div style="text-align: center; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 2rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">📚</div>
+                                    <h4 style="margin: 0; color: white; font-weight: 600;">LearNova Course</h4>
+                                </div>
+                                
+                                ${course.promotionalVideo ? `
+                                    <div style="margin-top: 1rem;">
+                                        <strong>Promotional Video:</strong>
+                                        <a href="${course.promotionalVideo}" target="_blank" style="display: block; color: #667eea; text-decoration: none; margin-top: 0.5rem;">🎥 View Video</a>
+                                    </div>
+                                ` : ''}
+                            </div>
                         </div>
 
                         ${course.modules && course.modules.length > 0 ? `
                             <div style="margin-top: 2rem;">
-                                <h4>Course Modules (${course.modules.length})</h4>
-                                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px;">
-                                    ${course.modules.map((module, index) => `
-                                        <div style="padding: 0.5rem 0; border-bottom: 1px solid #dee2e6;">
-                                            <strong>${index + 1}. ${module.title}</strong>
-                                            ${module.lessons ? `<span style="color: #666;"> (${module.lessons.length} lessons)</span>` : ''}
+                                <h4 style="margin-bottom: 1rem; color: #333;">Course Content (${course.modules.length} modules)</h4>
+                                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border: 1px solid #dee2e6;">
+                                    ${course.modules.map((module, moduleIndex) => `
+                                        <div style="margin-bottom: 1.5rem; padding: 1rem; background: white; border-radius: 6px; border-left: 4px solid #667eea;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                                <strong style="color: #333;">Module ${moduleIndex + 1}: ${module.title}</strong>
+                                                <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.8rem;">
+                                                    ${module.lessons ? module.lessons.length : 0} lessons
+                                                    ${module.estimatedDuration ? ` • ${Math.round(module.estimatedDuration / 60)}h` : ''}
+                                                </span>
+                                            </div>
+                                            ${module.description ? `<p style="color: #666; margin: 0.5rem 0; font-size: 0.9rem;">${module.description}</p>` : ''}
+                                            
+                                            ${module.lessons && module.lessons.length > 0 ? `
+                                                <div style="margin-top: 1rem;">
+                                                    <div style="font-weight: 600; color: #555; margin-bottom: 0.5rem;">Lessons:</div>
+                                                    ${module.lessons.map((lesson, lessonIndex) => `
+                                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; margin-bottom: 0.25rem;">
+                                                            <div style="flex: 1;">
+                                                                <span style="font-weight: 500;">${lessonIndex + 1}. ${lesson.title}</span>
+                                                                ${lesson.type ? `<span style="background: #667eea; color: white; padding: 0.125rem 0.375rem; border-radius: 8px; font-size: 0.7rem; margin-left: 0.5rem;">${lesson.type}</span>` : ''}
+                                                            </div>
+                                                            <div style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.8rem; color: #666;">
+                                                                ${lesson.duration ? `<span>⏱️ ${lesson.duration}min</span>` : ''}
+                                                                ${lesson.videoUrl ? `<span>🎥</span>` : ''}
+                                                                ${lesson.documentUrl ? `<span>📄</span>` : ''}
+                                                                ${lesson.imageUrl ? `<span>🖼️</span>` : ''}
+                                                                ${lesson.externalLink ? `<span>🔗</span>` : ''}
+                                                            </div>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            ` : ''}
                                         </div>
                                     `).join('')}
                                 </div>
                             </div>
                         ` : ''}
 
-                        <div style="margin-top: 2rem; text-align: right;">
+                        ${course.resources && course.resources.length > 0 ? `
+                            <div style="margin-top: 2rem;">
+                                <h4 style="margin-bottom: 1rem; color: #333;">Additional Resources</h4>
+                                <ul style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 0;">
+                                    ${course.resources.map(resource => `<li style="margin-bottom: 0.5rem;">${resource}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+
+                        <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #dee2e6; text-align: right;">
                             ${course.status === 'published' ? 
                                 `<button onclick="toggleCourseStatus('${course._id}', 'draft')" class="btn btn-warning" style="margin-right: 1rem;">Unpublish Course</button>` :
                                 `<button onclick="toggleCourseStatus('${course._id}', 'published')" class="btn btn-success" style="margin-right: 1rem;">Publish Course</button>`
                             }
-                            <button onclick="deleteCourse('${course._id}', '${course.title}')" class="btn btn-danger">Delete Course</button>
+                            <button onclick="deleteCourse('${course._id}', '${course.name || course.title}')" class="btn btn-danger">Delete Course</button>
                         </div>
                     </div>
                 `;
@@ -644,7 +744,13 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    showAlert(`Course ${newStatus} successfully!`, 'success');
+                    const statusMessages = {
+                        'published': 'Course approved and published successfully!',
+                        'rejected': 'Course rejected successfully!',
+                        'draft': 'Course moved to draft successfully!',
+                        'pending': 'Course status updated to pending!'
+                    };
+                    showAlert(statusMessages[newStatus] || `Course ${newStatus} successfully!`, 'success');
                     loadCourses(); // Refresh the list
                     loadCourseStats(); // Refresh stats
                     closeCourseModal(); // Close modal if open

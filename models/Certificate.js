@@ -19,7 +19,6 @@ const certificateSchema = new mongoose.Schema({
   },
   certificateId: {
     type: String,
-    unique: true,
     required: true
   },
   studentName: {
@@ -54,7 +53,6 @@ const certificateSchema = new mongoose.Schema({
   certificateUrl: String, // URL to the generated certificate PDF
   verificationCode: {
     type: String,
-    unique: true,
     required: true
   },
   status: {
@@ -89,11 +87,11 @@ certificateSchema.pre('save', function(next) {
   next();
 });
 
-// Create indexes
+// Create indexes with unique constraints
 certificateSchema.index({ student: 1 });
 certificateSchema.index({ course: 1 });
-certificateSchema.index({ certificateId: 1 });
-certificateSchema.index({ verificationCode: 1 });
+certificateSchema.index({ certificateId: 1 }, { unique: true });
+certificateSchema.index({ verificationCode: 1 }, { unique: true });
 
 module.exports = mongoose.model('Certificate', certificateSchema);
 

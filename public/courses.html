@@ -3,216 +3,845 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - LearNova</title>
+    <title>Browse Courses - Learnova</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        .filter-section {
+            background: #f8f9ff;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .filter-item label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        .course-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+        }
+        .course-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .course-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        .level-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .level-beginner { background: #d4edda; color: #155724; }
+        .level-intermediate { background: #fff3cd; color: #856404; }
+        .level-advanced { background: #f8d7da; color: #721c24; }
+        .search-section {
+            margin-bottom: 2rem;
+        }
+        .search-bar {
+            position: relative;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        .search-bar input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 1.2rem;
+        }
+        .results-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .sort-options {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            border: none;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: white;
+        }
+        
+        .modal-body {
+            padding: 2rem;
+        }
+        
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: #f1f1f1;
+        }
+        
+        .course-detail-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .course-detail-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .course-detail-stats {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .course-detail-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+        .notification-dot {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 12px;
+            height: 12px;
+            background: #dc3545;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .alert {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <a href="index.html" class="logo"></a>
-                <ul class="nav-links">
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="courses.html">Courses</a></li>
-                    <li><a href="about.html">About</a></li>
-                    <li><a href="contact.html">Contact</a></li>
-                </ul>
-                <div class="user-info">
-                    <a href="register.html" class="btn btn-outline">Sign Up</a>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <!-- Navbar will be inserted here by navbar.js -->
 
     <main class="main-content">
         <div class="container">
-            <div style="max-width: 400px; margin: 2rem auto;">
-                <div class="card fade-in">
-                    <div style="text-align: center; margin-bottom: 2rem;">
-                        <h1 style="color: #333; margin-bottom: 0.5rem;">Welcome Back</h1>
-                        <p style="color: #666;">Sign in to your LearNova account</p>
+            <!-- Page Title -->
+            <section class="text-center" style="margin-bottom: 3rem;">
+                <h1 style="margin-bottom: 1rem; color: #333;">Explore Our Courses</h1>
+                <p style="font-size: 1.2rem; color: #666; max-width: 600px; margin: 0 auto;">
+                    Discover world-class courses taught by industry experts. Start your learning journey today!
+                </p>
+            </section>
+
+            <!-- Search Section -->
+            <section class="search-section">
+                <div class="search-bar">
+                    <div class="search-icon">🔍</div>
+                    <input type="text" id="searchInput" placeholder="Search courses, instructors, or topics..." 
+                           onkeyup="handleSearch()">
+                </div>
+            </section>
+
+            <!-- Filters -->
+            <section class="filter-section">
+                <h3 style="margin-bottom: 1.5rem; color: #333;">Filter Courses</h3>
+                <div class="filter-group">
+                    <div class="filter-item">
+                        <label for="categoryFilter">Category</label>
+                        <select id="categoryFilter" class="form-control" onchange="applyFilters()">
+                            <option value="">All Categories</option>
+                            <option value="Programming">Programming</option>
+                            <option value="Web Development">Web Development</option>
+                            <option value="Data Science">Data Science</option>
+                            <option value="Design">Design</option>
+                            <option value="Business">Business</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Photography">Photography</option>
+                            <option value="Music">Music</option>
+                            <option value="Language">Language</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
-
-                    <div id="alertContainer"></div>
-
-                    <form id="loginForm">
-                        <div class="form-group">
-                            <label for="email">Email Address</label>
-                            <input type="email" id="email" name="email" class="form-control" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" id="password" name="password" class="form-control" required>
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                            <label style="display: flex; align-items: center; font-weight: normal;">
-                                <input type="checkbox" id="rememberMe" style="margin-right: 0.5rem;">
-                                Remember me
-                            </label>
-                            <a href="forgot-password.html" style="color: #667eea; text-decoration: none;">Forgot Password?</a>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100" id="loginBtn">
-                            <span id="loginBtnText">Sign In</span>
-                            <div id="loginSpinner" class="spinner" style="display: none; width: 20px; height: 20px; margin: 0 auto;"></div>
+                    <div class="filter-item">
+                        <label for="levelFilter">Level</label>
+                        <select id="levelFilter" class="form-control" onchange="applyFilters()">
+                            <option value="">All Levels</option>
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="priceFilter">Price</label>
+                        <select id="priceFilter" class="form-control" onchange="applyFilters()">
+                            <option value="">All Prices</option>
+                            <option value="free">Free</option>
+                            <option value="paid">Paid</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <button onclick="clearFilters()" class="btn btn-outline" style="margin-top: 1.5rem;">
+                            Clear Filters
                         </button>
-                    </form>
-
-                    <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e1e5e9;">
-                        <p style="color: #666;">Don't have an account? <a href="register.html" style="color: #667eea; text-decoration: none; font-weight: 600;">Sign up here</a></p>
                     </div>
                 </div>
+            </section>
 
-                <!-- Demo Credentials Card -->
-                <div class="card" style="margin-top: 1rem; background: #f8f9ff; border: 1px solid #e1e5e9;">
-                    <h3 style="color: #667eea; margin-bottom: 1rem; text-align: center;">Demo Credentials</h3>
-                    <p style="color: #666; margin-bottom: 1rem; text-align: center;">Use these credentials to test the system:</p>
-                    <div style="background: white; padding: 1rem; border-radius: 5px; font-family: monospace;">
-                        <p style="margin: 0.5rem 0;"><strong>Email:</strong> demo@learnhub.com</p>
-                        <p style="margin: 0.5rem 0;"><strong>Password:</strong> demo123</p>
-                    </div>
-                    <button onclick="fillDemoCredentials()" class="btn btn-secondary w-100" style="margin-top: 1rem;">Use Demo Credentials</button>
+            <!-- Results Info and Sorting -->
+            <div class="results-info">
+                <div>
+                    <span id="resultsCount">Loading courses...</span>
                 </div>
+                <div class="sort-options">
+                    <label for="sortBy" style="margin-right: 0.5rem;">Sort by:</label>
+                    <select id="sortBy" class="form-control" onchange="applyFilters()">
+                        <option value="newest">Newest First</option>
+                        <option value="popular">Most Popular</option>
+                        <option value="rating">Highest Rated</option>
+                        <option value="name">Alphabetical</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Courses Grid -->
+            <section id="coursesContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading courses...</p>
+                </div>
+            </section>
+
+            <!-- Pagination -->
+            <div id="pagination" class="text-center" style="margin-top: 3rem; display: none;">
+                <!-- Pagination will be added here -->
             </div>
         </div>
     </main>
 
-    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: auto;">
+    <!-- Course Details Modal -->
+    <div id="courseModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 id="modalCourseTitle">Course Details</h2>
+                <span class="close" onclick="closeCourseModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="modalCourseContent">
+                    <!-- Course details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer style="background: #333; color: white; padding: 2rem 0; text-align: center; margin-top: 4rem;">
         <div class="container">
-            <p>&copy; 2025 LearNova. All rights reserved.</p>
+            <p>&copy; 2025 LearnHub. All rights reserved.</p>
         </div>
     </footer>
 
     <script>
-        // Fill demo credentials
-        function fillDemoCredentials() {
-            document.getElementById('email').value = 'demo@learnhub.com';
-            document.getElementById('password').value = 'demo123';
+        let allCourses = [];
+        let filteredCourses = [];
+        let currentUser = null;
+        let currentPage = 1;
+        const coursesPerPage = 9;
+
+        // Check authentication
+        function checkAuth() {
+            // Check both 'user' and 'userData' for compatibility
+            const user = localStorage.getItem('userData') || localStorage.getItem('user');
+            if (user) {
+                currentUser = JSON.parse(user);
+                // Remove updateUserInfo since navbar will handle this
+                // updateUserInfo();
+            }
         }
 
-        // Show alert message
-        function showAlert(message, type = 'error') {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+        // Update user info in header
+        function updateUserInfo() {
+            const userInfo = document.getElementById('userInfo');
+            const userWelcome = document.getElementById('userWelcome');
+            const logoutBtn = document.querySelector('.logout-btn');
+            const loginBtn = document.getElementById('loginBtn');
+            const signUpBtn = document.getElementById('signUpBtn');
             
-            alertContainer.innerHTML = `
-                <div class="alert ${alertClass}">
-                    ${message}
+            if (currentUser) {
+                // Show logged-in state
+                userWelcome.textContent = `Welcome, ${currentUser.username || currentUser.fullName || 'Student'}!`;
+                logoutBtn.style.display = 'block';
+                loginBtn.style.display = 'none';
+                signUpBtn.style.display = 'none';
+            } else {
+                // Show logged-out state
+                userWelcome.textContent = 'Welcome!';
+                logoutBtn.style.display = 'none';
+                loginBtn.style.display = 'inline-block';
+                signUpBtn.style.display = 'inline-block';
+            }
+        }
+
+        // Get dashboard URL based on user role
+        function getDashboardUrl() {
+            if (!currentUser) return 'login.html';
+            switch (currentUser.role) {
+                case 'admin': return 'admin-dashboard.html';
+                case 'instructor': return 'instructor-dashboard.html';
+                case 'student': return 'student-dashboard.html';
+                default: return 'dashboard.html';
+            }
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            currentUser = null;
+            updateUserInfo();
+            // Reload courses to remove enrollment status
+            loadCourses();
+        }
+
+        // Load courses from API
+        async function loadCourses() {
+            try {
+                const response = await fetch('/api/courses?limit=100');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch courses');
+                }
+                
+                const data = await response.json();
+                allCourses = data.courses || data; // Handle both paginated and non-paginated responses
+                
+                // Load user enrollments if logged in
+                let userEnrollments = [];
+                if (currentUser) {
+                    try {
+                        const enrollmentsResponse = await fetch('/api/enrollments', {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
+                        if (enrollmentsResponse.ok) {
+                            userEnrollments = await enrollmentsResponse.json();
+                        }
+                    } catch (error) {
+                        console.error('Error loading enrollments:', error);
+                    }
+                }
+                
+                // Mark courses as enrolled
+                const enrolledCourseIds = userEnrollments.map(enrollment => enrollment.course._id || enrollment.course);
+                allCourses = allCourses.map(course => ({
+                    ...course,
+                    isEnrolled: enrolledCourseIds.includes(course._id)
+                }));
+                
+                filteredCourses = [...allCourses];
+                
+                displayCourses();
+                updateResultsCount();
+                
+            } catch (error) {
+                console.error('Error loading courses:', error);
+                document.getElementById('coursesContainer').innerHTML = `
+                    <div class="no-results">
+                        <h3>Unable to load courses</h3>
+                        <p>Please try again later.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display courses
+        function displayCourses() {
+            const container = document.getElementById('coursesContainer');
+            
+            if (filteredCourses.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📚</div>
+                        <h3>No courses found</h3>
+                        <p>Try adjusting your search or filter criteria.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Calculate pagination
+            const startIndex = (currentPage - 1) * coursesPerPage;
+            const endIndex = startIndex + coursesPerPage;
+            const coursesToShow = filteredCourses.slice(startIndex, endIndex);
+
+            container.innerHTML = `
+                <div class="course-grid">
+                    ${coursesToShow.map(course => createCourseCard(course)).join('')}
                 </div>
             `;
-            
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                alertContainer.innerHTML = '';
-            }, 5000);
+
+            // Update pagination
+            updatePagination();
         }
 
-        // Handle form submission
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const loginBtn = document.getElementById('loginBtn');
-            const loginBtnText = document.getElementById('loginBtnText');
-            const loginSpinner = document.getElementById('loginSpinner');
-            
-            // Show loading state
-            loginBtn.disabled = true;
-            loginBtnText.style.display = 'none';
-            loginSpinner.style.display = 'block';
-            
-            const formData = new FormData(e.target);
-            const loginData = {
-                email: formData.get('email'),
-                password: formData.get('password')
-            };
-            
+        // Create course card HTML
+        function createCourseCard(course) {
+            const levelClass = `level-${course.level.toLowerCase()}`;
+            return `
+                <div class="card course-card">
+                     <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='150' viewBox='0 0 400 150'><rect width='400' height='150' fill='%23667eea'/><text x='200' y='75' text-anchor='middle' dy='0.35em' fill='white' font-size='16' font-family='Arial'>📚 Learnova</text></svg>" alt="${course.courseName || 'Course'}" 
+                                     style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
+                    
+                    <div style="padding: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <span class="level-badge ${levelClass}">${course.level}</span>
+                            <span style="color: #666; font-size: 0.9rem;">${course.category}</span>
+                        </div>
+                        
+                        <h3 style="margin-bottom: 0.5rem; color: #333; font-size: 1.2rem;">${course.name}</h3>
+                        <p style="color: #666; margin-bottom: 1rem; line-height: 1.5; font-size: 0.9rem;">
+                            ${course.shortDescription || course.description?.substring(0, 100) + '...'}
+                        </p>
+                        
+                        <div class="course-stats">
+                            <span>⭐ ${(course.averageRating || 0).toFixed(1)}</span>
+                            <span>👥 ${course.enrollmentCount || 0}</span>
+                            <span>🕒 ${course.estimatedHours}h</span>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <span style="color: #666; font-size: 0.9rem;">
+                                by ${course.instructorName || course.instructor?.fullName || 'Unknown'}
+                            </span>
+                            <span style="font-weight: bold; color: #667eea; font-size: 1.1rem;">
+                                ${course.price === 0 ? 'Free' : `$${course.price}`}
+                            </span>
+                        </div>
+                        
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="showCourseDetails('${course._id}')" class="btn btn-outline" style="flex: 1;">View Details</button>
+                            ${currentUser ? 
+                                course.isEnrolled ? 
+                                    `<a href="my-courses.html" class="btn btn-success" style="flex: 1;">✓ Enrolled</a>` :
+                                    `<button onclick="enrollInCourse('${course._id}')" class="btn btn-primary" style="flex: 1;">Enroll</button>` :
+                                `<a href="login.html" class="btn btn-primary" style="flex: 1;">Login to Enroll</a>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Search functionality
+        function handleSearch() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            applyFilters();
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const levelFilter = document.getElementById('levelFilter').value;
+            const priceFilter = document.getElementById('priceFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            filteredCourses = allCourses.filter(course => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    course.name.toLowerCase().includes(searchTerm) ||
+                    course.description.toLowerCase().includes(searchTerm) ||
+                    course.shortDescription?.toLowerCase().includes(searchTerm) ||
+                    course.instructorName?.toLowerCase().includes(searchTerm);
+
+                // Category filter
+                const matchesCategory = !categoryFilter || course.category === categoryFilter;
+
+                // Level filter
+                const matchesLevel = !levelFilter || course.level === levelFilter;
+
+                // Price filter
+                const matchesPrice = !priceFilter || 
+                    (priceFilter === 'free' && course.price === 0) ||
+                    (priceFilter === 'paid' && course.price > 0);
+
+                return matchesSearch && matchesCategory && matchesLevel && matchesPrice;
+            });
+
+            // Sort courses
+            switch (sortBy) {
+                case 'popular':
+                    filteredCourses.sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0));
+                    break;
+                case 'rating':
+                    filteredCourses.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+                    break;
+                case 'name':
+                    filteredCourses.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+                case 'newest':
+                default:
+                    filteredCourses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    break;
+            }
+
+            currentPage = 1; // Reset to first page
+            displayCourses();
+            updateResultsCount();
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('levelFilter').value = '';
+            document.getElementById('priceFilter').value = '';
+            document.getElementById('sortBy').value = 'newest';
+            applyFilters();
+        }
+
+        // Update results count
+        function updateResultsCount() {
+            const count = filteredCourses.length;
+            const total = allCourses.length;
+            document.getElementById('resultsCount').textContent = 
+                `Showing ${count} of ${total} courses`;
+        }
+
+        // Update pagination
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
+            const pagination = document.getElementById('pagination');
+
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+
+            pagination.style.display = 'block';
+            let paginationHTML = '<div style="display: flex; justify-content: center; gap: 0.5rem;">';
+
+            // Previous button
+            if (currentPage > 1) {
+                paginationHTML += `<button onclick="changePage(${currentPage - 1})" class="btn btn-outline">Previous</button>`;
+            }
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    paginationHTML += `<button class="btn btn-primary">${i}</button>`;
+                } else if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 2) {
+                    paginationHTML += `<button onclick="changePage(${i})" class="btn btn-outline">${i}</button>`;
+                } else if (Math.abs(i - currentPage) === 3) {
+                    paginationHTML += '<span style="padding: 0.5rem;">...</span>';
+                }
+            }
+
+            // Next button
+            if (currentPage < totalPages) {
+                paginationHTML += `<button onclick="changePage(${currentPage + 1})" class="btn btn-outline">Next</button>`;
+            }
+
+            paginationHTML += '</div>';
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // Change page
+        function changePage(page) {
+            currentPage = page;
+            displayCourses();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Enroll in course
+        async function enrollInCourse(courseId) {
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
             try {
-                const response = await fetch('http://localhost:5000/login', {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/enrollments', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify(loginData)
+                    body: JSON.stringify({ courseId })
                 });
-                
+
                 const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Successfully enrolled in the course!', 'success');
+                    
+                    // Update the course enrollment status locally
+                    const courseIndex = allCourses.findIndex(course => course._id === courseId);
+                    if (courseIndex !== -1) {
+                        allCourses[courseIndex].isEnrolled = true;
+                        // Also update enrollment count
+                        allCourses[courseIndex].enrollmentCount = (allCourses[courseIndex].enrollmentCount || 0) + 1;
+                    }
+                    
+                    const filteredIndex = filteredCourses.findIndex(course => course._id === courseId);
+                    if (filteredIndex !== -1) {
+                        filteredCourses[filteredIndex].isEnrolled = true;
+                        filteredCourses[filteredIndex].enrollmentCount = (filteredCourses[filteredIndex].enrollmentCount || 0) + 1;
+                    }
+                    
+                    // Re-display courses with updated enrollment status
+                    displayCourses();
+                } else {
+                    showAlert(result.error || 'Failed to enroll in course');
+                }
+
+            } catch (error) {
+                console.error('Error enrolling in course:', error);
+                showAlert('Network error. Please try again.');
+            }
+        }
+
+        // Show course details in modal
+        async function showCourseDetails(courseId) {
+            try {
+                // Find course in local data first
+                const course = allCourses.find(c => c._id === courseId);
+                if (!course) {
+                    showAlert('Course not found');
+                    return;
+                }
+
+                // Fetch detailed course information
+                const response = await fetch(`/api/courses/${courseId}`);
+                let detailedCourse = course;
                 
                 if (response.ok) {
-                    // Store user info and token in localStorage
-                    localStorage.setItem('user', JSON.stringify(result.user));
-                    localStorage.setItem('token', result.token);
-                    
-                    showAlert('Login successful! Redirecting...', 'success');
-                    
-                    // Redirect based on user role
-                    setTimeout(() => {
-                        switch(result.user.role) {
-                            case 'admin':
-                                window.location.href = 'admin-dashboard.html';
-                                break;
-                            case 'instructor':
-                                if (result.user.instructorStatus === 'approved') {
-                                    window.location.href = 'instructor-dashboard.html';
-                                } else {
-                                    window.location.href = 'instructor-pending.html';
-                                }
-                                break;
-                            case 'student':
-                            default:
-                                window.location.href = 'student-dashboard.html';
-                                break;
-                        }
-                    }, 1500);
+                    detailedCourse = await response.json();
                 } else {
-                    showAlert(result.error || 'Login failed. Please try again.');
+                    console.warn('Could not fetch detailed course info, using cached data');
                 }
+
+                // Populate modal with course details
+                document.getElementById('modalCourseTitle').textContent = detailedCourse.name;
+                
+                const modalContent = document.getElementById('modalCourseContent');
+                modalContent.innerHTML = `
+                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='150' viewBox='0 0 400 150'><rect width='400' height='150' fill='%23667eea'/><text x='200' y='75' text-anchor='middle' dy='0.35em' fill='white' font-size='16' font-family='Arial'>📚 Learnova</text></svg>" alt="${course.courseName || 'Course'}" 
+                                     style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
+
+                    <div class="course-detail-meta">
+                        <span class="level-badge level-${detailedCourse.level.toLowerCase()}">${detailedCourse.level}</span>
+                        <span style="color: #666;">${detailedCourse.category}</span>
+                        <span style="color: #667eea; font-weight: bold;">${detailedCourse.price === 0 ? 'Free' : `$${detailedCourse.price}`}</span>
+                    </div>
+                    
+                    <div class="course-detail-stats">
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #667eea;">⭐ ${(detailedCourse.averageRating || 0).toFixed(1)}</div>
+                            <div style="font-size: 0.9rem; color: #666;">Rating</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #667eea;">👥 ${detailedCourse.enrollmentCount || 0}</div>
+                            <div style="font-size: 0.9rem; color: #666;">Students</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #667eea;">🕒 ${detailedCourse.estimatedHours}h</div>
+                            <div style="font-size: 0.9rem; color: #666;">Duration</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <h4 style="color: #333; margin-bottom: 0.5rem;">Instructor</h4>
+                        <p style="color: #666;">${detailedCourse.instructorName || detailedCourse.instructor?.fullName || 'Unknown'}</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <h4 style="color: #333; margin-bottom: 0.5rem;">Description</h4>
+                        <p style="color: #666; line-height: 1.6;">${detailedCourse.description || detailedCourse.shortDescription || 'No description available.'}</p>
+                    </div>
+                    
+                    ${detailedCourse.modules && detailedCourse.modules.length > 0 ? `
+                        <div style="margin-bottom: 1rem;">
+                            <h4 style="color: #333; margin-bottom: 0.5rem;">Course Content</h4>
+                            <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px;">
+                                <p style="color: #666; margin: 0;">${detailedCourse.modules.length} modules with ${detailedCourse.modules.reduce((total, module) => total + (module.lessons?.length || 0), 0)} lessons</p>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="course-detail-actions">
+                        ${currentUser ? 
+                            detailedCourse.isEnrolled ? 
+                                `<a href="my-courses.html" class="btn btn-success" style="flex: 1;">✓ Go to My Courses</a>` :
+                                `<button onclick="enrollInCourseFromModal('${detailedCourse._id}')" class="btn btn-primary" style="flex: 1;">Enroll Now</button>` :
+                            `<a href="login.html" class="btn btn-primary" style="flex: 1;">Login to Enroll</a>`
+                        }
+                        <button onclick="closeCourseModal()" class="btn btn-outline" style="flex: 1;">Close</button>
+                    </div>
+                `;
+
+                // Show modal
+                document.getElementById('courseModal').style.display = 'block';
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+
             } catch (error) {
-                console.error('Login error:', error);
-                showAlert('Network error. Please check your connection and try again.');
-            } finally {
-                // Reset button state
-                loginBtn.disabled = false;
-                loginBtnText.style.display = 'block';
-                loginSpinner.style.display = 'none';
+                console.error('Error loading course details:', error);
+                showAlert('Failed to load course details');
+            }
+        }
+
+        // Close course modal
+        function closeCourseModal() {
+            document.getElementById('courseModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        // Enroll from modal
+        async function enrollInCourseFromModal(courseId) {
+            await enrollInCourse(courseId);
+            // Update the modal content after enrollment
+            setTimeout(() => {
+                showCourseDetails(courseId);
+            }, 1000);
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('courseModal');
+            if (event.target === modal) {
+                closeCourseModal();
             }
         });
 
-        // Check if user is already logged in
-        document.addEventListener('DOMContentLoaded', () => {
-            const user = localStorage.getItem('user');
-            if (user) {
-                window.location.href = 'dashboard.html';
-            }
-        });
-
-        // Handle remember me functionality
-        document.addEventListener('DOMContentLoaded', () => {
-            const rememberMe = localStorage.getItem('rememberMe');
-            const savedEmail = localStorage.getItem('savedEmail');
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type === 'success' ? 'alert-success' : 'alert-error'}`;
+            alertDiv.textContent = message;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            alertDiv.style.maxWidth = '400px';
             
-            if (rememberMe === 'true' && savedEmail) {
-                document.getElementById('email').value = savedEmail;
-                document.getElementById('rememberMe').checked = true;
-            }
-        });
-
-        // Save email if remember me is checked
-        document.getElementById('loginForm').addEventListener('submit', () => {
-            const rememberMe = document.getElementById('rememberMe').checked;
-            const email = document.getElementById('email').value;
+            document.body.appendChild(alertDiv);
             
-            if (rememberMe) {
-                localStorage.setItem('rememberMe', 'true');
-                localStorage.setItem('savedEmail', email);
-            } else {
-                localStorage.removeItem('rememberMe');
-                localStorage.removeItem('savedEmail');
-            }
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadCourses();
         });
     </script>
+    <script src="navbar.js"></script>
 </body>
 </html>
 

@@ -5,27 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instructor Dashboard - LearNova</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <a href="instructor-dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
-                <ul class="nav-links">
-                    <li><a href="instructor-dashboard.html">Dashboard</a></li>
-                    <li><a href="instructor-courses.html">My Courses</a></li>
-                    <li><a href="instructor-create-course-enhanced.html">Create Course</a></li>
-                    <li><a href="instructor-students.html">Students</a></li>
-                    <li><a href="instructor-queries.html">Q&A</a></li>
-                </ul>
-                <div class="user-info">
-                    <span id="userWelcome">Welcome!</span>
-                    <button class="logout-btn" onclick="logout()">Logout</button>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <!-- Modern navbar will be inserted here by navbar.js -->
 
     <main class="main-content">
         <div class="container">
@@ -120,7 +104,8 @@
 
         // Check authentication and instructor status
         function checkAuth() {
-            const user = localStorage.getItem('user');
+            // Try both 'user' and 'userData' keys for compatibility with navbar
+            const user = localStorage.getItem('userData') || localStorage.getItem('user');
             if (!user) {
                 window.location.href = 'login.html';
                 return null;
@@ -129,18 +114,29 @@
             currentUser = JSON.parse(user);
             
             if (currentUser.role !== 'instructor') {
-                window.location.href = 'dashboard.html';
+                window.location.href = 'student-dashboard.html';
                 return null;
             }
             
-            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
-            document.getElementById('instructorName').textContent = currentUser.fullName || currentUser.username;
+            // Update UI elements with user data (with safety checks)
+            const userWelcomeElement = document.getElementById('userWelcome');
+            const instructorNameElement = document.getElementById('instructorName');
+            
+            if (userWelcomeElement) {
+                userWelcomeElement.textContent = `Welcome, ${currentUser.username || currentUser.name || 'Instructor'}!`;
+            }
+            if (instructorNameElement) {
+                instructorNameElement.textContent = currentUser.fullName || currentUser.name || currentUser.username || 'Instructor';
+            }
+            
             return currentUser;
         }
 
         // Logout function
         function logout() {
             localStorage.removeItem('user');
+            localStorage.removeItem('userData');
+            localStorage.removeItem('token');
             window.location.href = 'index.html';
         }
 
@@ -150,27 +146,47 @@
 
             try {
                 // Get instructor's courses
-                const coursesResponse = await fetch(`/api/instructor/courses?instructorId=${currentUser.id}`, {
+                const coursesResponse = await fetch('/api/instructor/courses', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
+                
+                if (!coursesResponse.ok) {
+                    throw new Error(`HTTP error! status: ${coursesResponse.status}`);
+                }
+                
                 const courses = await coursesResponse.json();
+                console.log('Courses data:', courses); // Debug log
 
                 // Get instructor queries
-                const queriesResponse = await fetch('/api/instructor-queries', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                let queries = [];
+                try {
+                    const queriesResponse = await fetch('/api/instructor-queries', {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    
+                    if (queriesResponse.ok) {
+                        queries = await queriesResponse.json();
+                        console.log('Queries data:', queries); // Debug log
+                    } else {
+                        console.warn('Failed to fetch queries, continuing without them');
                     }
-                });
-                const queries = await queriesResponse.json();
+                } catch (queryError) {
+                    console.warn('Error fetching queries:', queryError);
+                    queries = []; // Continue with empty queries
+                }
 
                 // Calculate stats
                 const totalCourses = courses.length;
-                const totalStudents = courses.reduce((sum, course) => sum + (course.totalEnrollments || 0), 0);
+                const totalStudents = courses.reduce((sum, course) => sum + (course.enrollmentCount || 0), 0);
                 const averageRating = courses.length > 0 ? 
                     (courses.reduce((sum, course) => sum + (course.averageRating || 0), 0) / courses.length).toFixed(1) : 0;
                 const pendingQueries = queries.filter(q => q.status === 'open').length;
+
+                console.log('Calculated stats:', { totalCourses, totalStudents, averageRating, pendingQueries }); // Debug log
 
                 // Update UI
                 animateNumber('totalCourses', totalCourses);
@@ -186,7 +202,18 @@
 
             } catch (error) {
                 console.error('Error loading instructor stats:', error);
-                showAlert('Unable to load dashboard data.');
+                showAlert('Unable to load dashboard data. Please try refreshing the page.');
+                
+                // Show empty state for course performance
+                const container = document.getElementById('coursePerformance');
+                container.innerHTML = `
+                    <div class="card text-center">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                        <h3 style="margin-bottom: 1rem;">Error Loading Data</h3>
+                        <p style="color: #666; margin-bottom: 2rem;">There was an issue loading your course data.</p>
+                        <button onclick="loadInstructorStats()" class="btn btn-primary">Retry</button>
+                    </div>
+                `;
             }
         }
 
@@ -210,19 +237,18 @@
                 <div class="course-grid">
                     ${courses.slice(0, 6).map(course => `
                         <div class="card">
-                            <img src="${course.image}" alt="${course.name}" 
-                                 style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;"
-                                 onerror="this.src='data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 300 150\\"><rect width=\\"300\\" height=\\"150\\" fill=\\"%23f0f0f0\\"/><text x=\\"150\\" y=\\"75\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"16\\">Course Image</text></svg>'">
+                            <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='150' viewBox='0 0 400 150'><rect width='400' height='150' fill='%23667eea'/><text x='200' y='75' text-anchor='middle' dy='0.35em' fill='white' font-size='16' font-family='Arial'>📚 Learnova</text></svg>" alt="${course.courseName || 'Course'}" 
+                                     style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
                             <h4 style="margin-bottom: 0.5rem; color: #333;">${course.name}</h4>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem; color: #666;">
-                                <div>👥 ${course.totalEnrollments || 0} students</div>
+                                <div>👥 ${course.enrollmentCount || 0} students</div>
                                 <div>⭐ ${(course.averageRating || 0).toFixed(1)} rating</div>
                                 <div>📊 ${course.completionRate || 0}% completion</div>
-                                <div>📅 ${course.status}</div>
+                                <div>📅 ${course.status || 'Active'}</div>
                             </div>
                             <div style="display: flex; gap: 0.5rem;">
-                                <a href="instructor-course-details.html?id=${course._id}" class="btn btn-outline" style="flex: 1;">View</a>
-                                <a href="instructor-edit-course.html?id=${course._id}" class="btn btn-primary" style="flex: 1;">Edit</a>
+                                <a href="instructor-course-details.html?courseId=${course._id}" class="btn btn-outline" style="flex: 1;">View Details</a>
+                                <a href="instructor-courses.html" class="btn btn-primary" style="flex: 1;">Edit</a>
                             </div>
                         </div>
                     `).join('')}
@@ -239,7 +265,7 @@
         function displayRecentActivity(queries) {
             const container = document.getElementById('recentActivity');
             
-            if (queries.length === 0) {
+            if (!queries || queries.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 2rem; color: #666;">
                         <div style="font-size: 2rem; margin-bottom: 1rem;">💬</div>
@@ -260,9 +286,9 @@
                                 ${getQueryStatusIcon(query.status)}
                             </div>
                             <div style="flex: 1;">
-                                <h4 style="margin: 0; color: #333;">${query.title}</h4>
+                                <h4 style="margin: 0; color: #333;">${query.title || 'Untitled Query'}</h4>
                                 <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.9rem;">
-                                    From ${query.student.fullName} • ${query.course.name}
+                                    From ${query.student?.fullName || query.student?.username || 'Student'} • ${query.course?.name || 'Unknown Course'}
                                 </p>
                             </div>
                             <div style="text-align: right;">
@@ -271,7 +297,7 @@
                                 </div>
                                 <div style="margin-top: 0.25rem;">
                                     <span style="padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.8rem; background: ${getQueryStatusColor(query.status)}; color: white;">
-                                        ${query.status}
+                                        ${query.status || 'open'}
                                     </span>
                                 </div>
                             </div>
@@ -346,6 +372,9 @@
             }
         });
     </script>
+
+    <!-- Modern Navbar Script -->
+    <script src="navbar.js"></script>
 </body>
 </html>
 

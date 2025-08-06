@@ -5,26 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Progress - LearNova</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <a href="dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
-                <ul class="nav-links">
-                    <li><a href="dashboard.html">Dashboard</a></li>
-                    <li><a href="courses.html">Courses</a></li>
-                    <li><a href="my-courses.html">My Courses</a></li>
-                    <li><a href="progress.html">Progress</a></li>
-                </ul>
-                <div class="user-info">
-                    <span id="userWelcome">Welcome!</span>
-                    <button class="logout-btn" onclick="logout()">Logout</button>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <!-- Navbar will be inserted here by navbar.js -->
 
     <main class="main-content">
         <div class="container">
@@ -127,20 +112,25 @@
 
         // Check authentication
         function checkAuth() {
-            const user = localStorage.getItem('user');
-            if (!user) {
+            const token = localStorage.getItem('token');
+            // Check both 'user' and 'userData' for compatibility
+            const user = localStorage.getItem('userData') || localStorage.getItem('user');
+            
+            if (!token || !user) {
                 window.location.href = 'login.html';
                 return null;
             }
             
             currentUser = JSON.parse(user);
-            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
+            // Remove this line since navbar will handle the welcome message
+            // document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
             return currentUser;
         }
 
         // Logout function
         function logout() {
             localStorage.removeItem('user');
+            localStorage.removeItem('token');
             window.location.href = 'index.html';
         }
 
@@ -149,7 +139,29 @@
             if (!currentUser) return;
 
             try {
-                const response = await fetch(`/api/student-progress-details?username=${encodeURIComponent(currentUser.username)}&email=${encodeURIComponent(currentUser.email)}`);
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+
+                const response = await fetch('/api/student-progress-details', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Token is invalid, redirect to login
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 allProgressData = await response.json();
                 
                 populateCourseSelect();
@@ -159,7 +171,12 @@
             } catch (error) {
                 console.error('Error loading progress data:', error);
                 document.getElementById('progressOverview').innerHTML = 
-                    '<p style="text-align: center; color: #666;">Unable to load progress data at the moment.</p>';
+                    `<div style="text-align: center; padding: 3rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem; color: #dc3545;">⚠️</div>
+                        <h3 style="margin-bottom: 1rem; color: #333;">Unable to Load Progress</h3>
+                        <p style="color: #666; margin-bottom: 2rem;">There was an error loading your progress data. Please try refreshing the page.</p>
+                        <button onclick="location.reload()" class="btn btn-primary">Refresh Page</button>
+                    </div>`;
             }
         }
 
@@ -170,10 +187,13 @@
             // Clear existing options except the first one
             courseSelect.innerHTML = '<option value="">All Courses Overview</option>';
             
-            allProgressData.forEach(course => {
+            allProgressData.forEach((course, index) => {
                 const option = document.createElement('option');
-                option.value = course.courseName;
-                option.textContent = course.courseName;
+                // Use array index as a more reliable identifier
+                option.value = index.toString();
+                option.textContent = course.courseName || 'Unknown Course';
+                option.setAttribute('data-course-id', course.courseId || '');
+                option.setAttribute('data-course-name', course.courseName || '');
                 courseSelect.appendChild(option);
             });
             
@@ -184,11 +204,17 @@
         // Handle course selection
         function handleCourseSelection() {
             const courseSelect = document.getElementById('courseSelect');
-            const selectedCourseName = courseSelect.value;
+            const selectedIndex = courseSelect.value;
             
-            if (selectedCourseName) {
-                selectedCourse = allProgressData.find(course => course.courseName === selectedCourseName);
-                showDetailedProgress();
+            if (selectedIndex !== '' && selectedIndex !== undefined) {
+                const index = parseInt(selectedIndex);
+                if (index >= 0 && index < allProgressData.length) {
+                    selectedCourse = allProgressData[index];
+                    showDetailedProgress();
+                } else {
+                    selectedCourse = null;
+                    showOverviewProgress();
+                }
             } else {
                 selectedCourse = null;
                 showOverviewProgress();
@@ -212,29 +238,75 @@
         // Display overall statistics
         function displayOverallStatistics() {
             const totalCourses = allProgressData.length;
-            const completedCourses = allProgressData.filter(course => course.isCompleted).length;
-            const totalQuizzes = allProgressData.reduce((sum, course) => sum + course.quizScores.length, 0);
             
-            // Calculate average score
+            // Count completed courses using multiple criteria
+            const completedCourses = allProgressData.filter(course => {
+                // Check if explicitly marked as completed
+                if (course.isCompleted) return true;
+                
+                // Check if overall progress is 100%
+                if (course.overallProgress >= 100) return true;
+                
+                // Check if all lessons are completed
+                if (course.progress && course.progress.totalLessons && course.progress.completedLessons) {
+                    return course.progress.completedLessons >= course.progress.totalLessons;
+                }
+                
+                return false;
+            }).length;
+            
+            // Count total quizzes across all courses
+            const totalQuizzes = allProgressData.reduce((sum, course) => {
+                return sum + (course.quizScores ? course.quizScores.length : 0);
+            }, 0);
+            
+            // Calculate average score from all quizzes and final exams
             let totalScore = 0;
-            let totalQuizCount = 0;
+            let totalAssessments = 0;
+            
             allProgressData.forEach(course => {
-                course.quizScores.forEach(quiz => {
-                    totalScore += quiz.percentage;
-                    totalQuizCount++;
-                });
+                // Add quiz scores
+                if (course.quizScores && course.quizScores.length > 0) {
+                    course.quizScores.forEach(quiz => {
+                        if (quiz.percentage !== undefined && quiz.percentage !== null) {
+                            totalScore += quiz.percentage;
+                            totalAssessments++;
+                        }
+                    });
+                }
+                
+                // Add final exam scores
                 if (course.finalExamScore) {
-                    totalScore += course.finalExamScore.percentage;
-                    totalQuizCount++;
+                    const examPercentage = typeof course.finalExamScore === 'object' ? 
+                                          course.finalExamScore.percentage : course.finalExamScore;
+                    if (examPercentage !== undefined && examPercentage !== null) {
+                        totalScore += examPercentage;
+                        totalAssessments++;
+                    }
                 }
             });
-            const averageScore = totalQuizCount > 0 ? Math.round(totalScore / totalQuizCount) : 0;
+            
+            const averageScore = totalAssessments > 0 ? Math.round(totalScore / totalAssessments) : 0;
 
-            // Animate numbers
+            // Animate numbers with improved display
             animateNumber('totalCourses', totalCourses);
             animateNumber('completedCourses', completedCourses);
             animateNumber('totalQuizzes', totalQuizzes);
-            document.getElementById('averageScore').textContent = averageScore + '%';
+            
+            // Update average score with color coding
+            const avgElement = document.getElementById('averageScore');
+            avgElement.textContent = averageScore + '%';
+            
+            // Color code the average score
+            if (averageScore >= 80) {
+                avgElement.style.color = '#28a745'; // Green for excellent
+            } else if (averageScore >= 60) {
+                avgElement.style.color = '#ffc107'; // Yellow for good
+            } else if (averageScore > 0) {
+                avgElement.style.color = '#dc3545'; // Red for needs improvement
+            } else {
+                avgElement.style.color = '#6c757d'; // Gray for no data
+            }
         }
 
         // Display progress overview
@@ -255,83 +327,134 @@
             
             container.innerHTML = `
                 <div class="course-grid">
-                    ${allProgressData.map(course => `
+                    ${allProgressData.map((course, index) => {
+                        // Calculate progress based on multiple factors
+                        let progressPercentage = course.overallProgress || 0;
+                        
+                        // If no overall progress, calculate from available data
+                        if (!progressPercentage && course.progress) {
+                            const completed = course.progress.completedLessons || 0;
+                            const total = course.progress.totalLessons || 0;
+                            if (total > 0) {
+                                progressPercentage = Math.round((completed / total) * 100);
+                            }
+                        }
+                        
+                        // Quiz info
+                        const quizCount = course.quizScores ? course.quizScores.length : 0;
+                        
+                        // Final exam info
+                        let examInfo = 'Pending';
+                        let examColor = '#dc3545';
+                        if (course.finalExamScore) {
+                            const examScore = typeof course.finalExamScore === 'object' ? 
+                                             course.finalExamScore.percentage : course.finalExamScore;
+                            examInfo = examScore + '%';
+                            examColor = examScore >= 80 ? '#28a745' : examScore >= 60 ? '#ffc107' : '#dc3545';
+                        } else if (course.finalExamTaken) {
+                            examInfo = 'Completed';
+                            examColor = '#28a745';
+                        }
+                        
+                        // Course image
+                        const defaultImage = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='150' viewBox='0 0 400 150'><rect width='400' height='150' fill='#667eea'/><text x='200' y='75' text-anchor='middle' dy='0.35em' fill='white' font-size='16' font-family='Arial'>📚 ${course.courseName || 'Course'}</text></svg>`);
+                        const courseImage = course.courseImage || defaultImage;
+                        
+                        return `
                         <div class="card">
                             <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-                                <img src="${course.courseImage}" alt="${course.courseName}" 
-                                     style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 1rem;"
-                                     onerror="this.src='data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 60 60\\"><rect width=\\"60\\" height=\\"60\\" fill=\\"%23f0f0f0\\"/><text x=\\"30\\" y=\\"30\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"10\\">📚</text></svg>'">
-                                <div style="flex: 1;">
-                                    <h3 style="margin: 0; color: #333; font-size: 1.1rem;">${course.courseName}</h3>
-                                    <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.9rem;">
-                                        ${course.completedModules}/${course.totalModules} modules completed
-                                    </p>
-                                </div>
-                                ${course.isCompleted ? '<div style="color: #28a745; font-size: 1.5rem;">✓</div>' : ''}
+                               <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='150' viewBox='0 0 400 150'><rect width='400' height='150' fill='%23667eea'/><text x='200' y='75' text-anchor='middle' dy='0.35em' fill='white' font-size='16' font-family='Arial'>📚 Learnova</text></svg>" alt="${course.courseName || 'Course'}" 
+                                     style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
                             </div>
+                            
+                            <h4 style="margin-bottom: 1rem; color: #333; font-size: 1.1rem;">${course.courseName || 'Unknown Course'}</h4>
                             
                             <div style="margin-bottom: 1rem;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                     <span style="font-weight: 600;">Overall Progress</span>
-                                    <span style="font-weight: bold; color: #667eea;">${course.overallProgress}%</span>
+                                    <span style="font-weight: bold; color: #667eea;">${progressPercentage}%</span>
                                 </div>
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${course.overallProgress}%"></div>
+                                    <div class="progress-fill" style="width: ${progressPercentage}%"></div>
                                 </div>
                             </div>
                             
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; font-size: 0.9rem;">
                                 <div style="text-align: center; padding: 0.5rem; background: #f8f9fa; border-radius: 5px;">
-                                    <div style="font-weight: bold; color: #667eea;">${course.quizScores.length}</div>
+                                    <div style="font-weight: bold; color: #667eea;">${quizCount}</div>
                                     <div style="color: #666;">Quizzes</div>
                                 </div>
                                 <div style="text-align: center; padding: 0.5rem; background: #f8f9fa; border-radius: 5px;">
-                                    <div style="font-weight: bold; color: ${course.finalExamScore ? '#28a745' : '#dc3545'};">
-                                        ${course.finalExamScore ? course.finalExamScore.percentage + '%' : 'Pending'}
-                                    </div>
+                                    <div style="font-weight: bold; color: ${examColor};">${examInfo}</div>
                                     <div style="color: #666;">Final Exam</div>
                                 </div>
                             </div>
                             
-                            <button onclick="selectCourse('${course.courseName}')" class="btn btn-primary w-100">
+                            <button onclick="selectCourse('${course.courseId || course.courseName}')" class="btn btn-primary w-100">
                                 View Details
                             </button>
                         </div>
-                    `).join('')}
+                    `;
+                    }).join('')}
                 </div>
             `;
         }
 
         // Select course programmatically
-        function selectCourse(courseName) {
-            document.getElementById('courseSelect').value = courseName;
-            handleCourseSelection();
+        function selectCourse(courseIdentifier) {
+            const courseSelect = document.getElementById('courseSelect');
+            
+            // Find the course by ID or name
+            const courseIndex = allProgressData.findIndex(course => 
+                (course.courseId && course.courseId.toString() === courseIdentifier) || 
+                course.courseName === courseIdentifier
+            );
+            
+            if (courseIndex >= 0) {
+                courseSelect.value = courseIndex.toString();
+                handleCourseSelection();
+            } else {
+                console.warn('Course not found:', courseIdentifier);
+            }
         }
 
         // Display detailed progress
         function displayDetailedProgress() {
             if (!selectedCourse) return;
             
+            // Calculate progress for the selected course
+            let progressPercentage = selectedCourse.overallProgress || 0;
+            if (!progressPercentage && selectedCourse.progress) {
+                const completed = selectedCourse.progress.completedLessons || 0;
+                const total = selectedCourse.progress.totalLessons || 0;
+                if (total > 0) {
+                    progressPercentage = Math.round((completed / total) * 100);
+                }
+            }
+            
             // Course Progress Summary
+            const defaultImage = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='400' height='150' viewBox='0 0 400 150'><rect width='400' height='150' fill='#667eea'/><text x='200' y='75' text-anchor='middle' dy='0.35em' fill='white' font-size='16' font-family='Arial'>📚 ${selectedCourse.courseName || 'Course'}</text></svg>`);
+            const courseImage = selectedCourse.courseImage || defaultImage;
+            
             document.getElementById('courseProgressSummary').innerHTML = `
                 <div class="card">
                     <div style="display: grid; grid-template-columns: auto 1fr auto; gap: 2rem; align-items: center;">
-                        <img src="${selectedCourse.courseImage}" alt="${selectedCourse.courseName}" 
-                             style="width: 100px; height: 100px; object-fit: cover; border-radius: 10px;"
-                             onerror="this.src='data:image/svg+xml,<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 100 100\\"><rect width=\\"100\\" height=\\"100\\" fill=\\"%23f0f0f0\\"/><text x=\\"50\\" y=\\"50\\" text-anchor=\\"middle\\" fill=\\"%23999\\" font-size=\\"12\\">📚</text></svg>'">
+                        <img src="${courseImage}" 
+                             alt="${selectedCourse.courseName || 'Course'}" 
+                             style="width: 120px; height: 80px; object-fit: cover; border-radius: 8px;">
                         <div>
                             <h3 style="margin-bottom: 0.5rem; color: #333;">${selectedCourse.courseName}</h3>
-                            <p style="color: #666; margin-bottom: 1rem;">${selectedCourse.courseDescription}</p>
+                            <p style="color: #666; margin-bottom: 1rem;">${selectedCourse.description || 'Course description not available'}</p>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                 <span style="font-weight: 600;">Overall Progress</span>
-                                <span style="font-weight: bold; color: #667eea;">${selectedCourse.overallProgress}%</span>
+                                <span style="font-weight: bold; color: #667eea;">${progressPercentage}%</span>
                             </div>
                             <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${selectedCourse.overallProgress}%"></div>
+                                <div class="progress-fill" style="width: ${progressPercentage}%"></div>
                             </div>
                         </div>
                         <div style="text-align: center;">
-                            ${selectedCourse.isCompleted ? `
+                            ${selectedCourse.isCompleted || progressPercentage >= 100 ? `
                                 <div style="color: #28a745; font-size: 3rem; margin-bottom: 0.5rem;">🏆</div>
                                 <div style="font-weight: bold; color: #28a745;">Completed!</div>
                             ` : `
@@ -343,59 +466,108 @@
                 </div>
             `;
             
-            // Module Progress
-            document.getElementById('moduleProgress').innerHTML = `
-                <div class="card">
-                    <ul class="module-list">
-                        ${selectedCourse.moduleProgress.map((module, index) => `
-                            <li class="module-item">
-                                <div class="module-link">
-                                    <div class="module-icon" style="background: ${getModuleStatusColor(module.status)};">
-                                        ${module.status === 'completed' ? '✓' : index + 1}
+            // Module Progress - Enhanced to show more details
+            const moduleProgressContent = generateModuleProgressContent(selectedCourse, progressPercentage);
+            document.getElementById('moduleProgress').innerHTML = moduleProgressContent;
+            
+            // Quiz Results - Enhanced display
+            const quizResultsContent = generateQuizResultsContent(selectedCourse);
+            document.getElementById('quizResults').innerHTML = quizResultsContent;
+            
+            // Final Exam Result - Enhanced display  
+            const finalExamContent = generateFinalExamContent(selectedCourse);
+            document.getElementById('finalExamResult').innerHTML = finalExamContent;
+        }
+        
+        // Generate module progress content
+        function generateModuleProgressContent(course, progressPercentage) {
+            if (course.progress && (course.progress.totalLessons || course.progress.completedLessons)) {
+                const completed = course.progress.completedLessons || 0;
+                const total = course.progress.totalLessons || 0;
+                
+                return `
+                    <div class="card">
+                        <div style="text-align: center; padding: 2rem;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem; color: #667eea;">�</div>
+                            <h4 style="margin-bottom: 1rem; color: #333;">Learning Progress</h4>
+                            <div style="margin-bottom: 1.5rem;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #667eea; margin-bottom: 0.5rem;">
+                                    ${completed}/${total} Lessons
+                                </div>
+                                <div style="font-size: 1.2rem; color: #666; margin-bottom: 1rem;">
+                                    ${progressPercentage}% Complete
+                                </div>
+                                <div class="progress-bar" style="max-width: 300px; margin: 0 auto;">
+                                    <div class="progress-fill" style="width: ${progressPercentage}%"></div>
+                                </div>
+                            </div>
+                            ${total > 0 ? `
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: 200px; margin: 0 auto;">
+                                    <div style="text-align: center;">
+                                        <div style="font-weight: bold; color: #28a745;">${completed}</div>
+                                        <div style="font-size: 0.9rem; color: #666;">Completed</div>
                                     </div>
-                                    <div class="module-info">
-                                        <div class="module-title">${module.moduleName}</div>
-                                        <div class="module-status">${getModuleStatusText(module.status)}</div>
-                                    </div>
-                                    <div class="module-progress">
-                                        <div style="text-align: right;">
-                                            <div style="font-weight: bold; color: #667eea;">${module.completion}%</div>
-                                            <div style="font-size: 0.8rem; color: #666;">
-                                                ${module.lastAccessed ? new Date(module.lastAccessed).toLocaleDateString() : 'Not accessed'}
-                                            </div>
-                                        </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-weight: bold; color: #dc3545;">${total - completed}</div>
+                                        <div style="font-size: 0.9rem; color: #666;">Remaining</div>
                                     </div>
                                 </div>
-                            </li>
-                        `).join('')}
-                    </ul>
-                </div>
-            `;
-            
-            // Quiz Results
-            if (selectedCourse.quizScores.length > 0) {
-                document.getElementById('quizResults').innerHTML = `
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="card">
+                        <div style="text-align: center; padding: 2rem;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem; color: #667eea;">📚</div>
+                            <h4 style="margin-bottom: 1rem; color: #333;">Course Progress</h4>
+                            <div style="margin-bottom: 1rem;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #667eea; margin-bottom: 0.5rem;">
+                                    ${progressPercentage}% Complete
+                                </div>
+                                <div class="progress-bar" style="max-width: 300px; margin: 0 auto;">
+                                    <div class="progress-fill" style="width: ${progressPercentage}%"></div>
+                                </div>
+                            </div>
+                            <p style="color: #666;">Detailed module progress is available when learning in the course.</p>
+                            <a href="my-courses.html" class="btn btn-primary" style="margin-top: 1rem;">Go to My Courses</a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Generate quiz results content
+        function generateQuizResultsContent(course) {
+            if (course.quizScores && course.quizScores.length > 0) {
+                return `
                     <div class="card">
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
-                            ${selectedCourse.quizScores.map(quiz => `
+                            ${course.quizScores.map((quiz, index) => `
                                 <div style="padding: 1rem; border: 1px solid #e1e5e9; border-radius: 8px;">
-                                    <h4 style="margin-bottom: 0.5rem; color: #333;">Module ${quiz.moduleIndex + 1} Quiz</h4>
+                                    <h4 style="margin-bottom: 0.5rem; color: #333;">Quiz ${index + 1}</h4>
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                         <span>Score:</span>
-                                        <span style="font-weight: bold; color: ${getScoreColor(quiz.percentage)};">
-                                            ${quiz.score}/${quiz.totalQuestions} (${quiz.percentage}%)
+                                        <span style="font-weight: bold; color: ${getScoreColor(quiz.percentage || 0)};">
+                                            ${quiz.score || 0}/${quiz.totalQuestions || 0} (${quiz.percentage || 0}%)
                                         </span>
                                     </div>
                                     <div class="progress-bar" style="height: 6px;">
-                                        <div class="progress-fill" style="width: ${quiz.percentage}%; background: ${getScoreColor(quiz.percentage)};"></div>
+                                        <div class="progress-fill" style="width: ${quiz.percentage || 0}%; background: ${getScoreColor(quiz.percentage || 0)};"></div>
                                     </div>
+                                    ${quiz.completedAt ? `
+                                        <div style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                                            Completed: ${new Date(quiz.completedAt).toLocaleDateString()}
+                                        </div>
+                                    ` : ''}
                                 </div>
                             `).join('')}
                         </div>
                     </div>
                 `;
             } else {
-                document.getElementById('quizResults').innerHTML = `
+                return `
                     <div class="card text-center">
                         <div style="color: #666; padding: 2rem;">
                             <div style="font-size: 2rem; margin-bottom: 1rem;">📝</div>
@@ -404,10 +576,15 @@
                     </div>
                 `;
             }
-            
-            // Final Exam Result
-            if (selectedCourse.finalExamScore) {
-                document.getElementById('finalExamResult').innerHTML = `
+        }
+        
+        // Generate final exam content
+        function generateFinalExamContent(course) {
+            if (course.finalExamScore) {
+                const examScore = typeof course.finalExamScore === 'object' ? course.finalExamScore : 
+                                 { percentage: course.finalExamScore, score: 0, totalQuestions: 0 };
+                                 
+                return `
                     <div class="card">
                         <div style="display: flex; align-items: center; justify-content: space-between;">
                             <div>
@@ -415,21 +592,23 @@
                                 <p style="color: #666; margin: 0;">Completed successfully</p>
                             </div>
                             <div style="text-align: right;">
-                                <div style="font-size: 1.5rem; font-weight: bold; color: ${getScoreColor(selectedCourse.finalExamScore.percentage)};">
-                                    ${selectedCourse.finalExamScore.score}/${selectedCourse.finalExamScore.totalQuestions}
-                                </div>
-                                <div style="font-size: 1.2rem; font-weight: bold; color: ${getScoreColor(selectedCourse.finalExamScore.percentage)};">
-                                    ${selectedCourse.finalExamScore.percentage}%
+                                ${examScore.score !== undefined && examScore.totalQuestions !== undefined ? `
+                                    <div style="font-size: 1.5rem; font-weight: bold; color: ${getScoreColor(examScore.percentage)};">
+                                        ${examScore.score}/${examScore.totalQuestions}
+                                    </div>
+                                ` : ''}
+                                <div style="font-size: 1.2rem; font-weight: bold; color: ${getScoreColor(examScore.percentage)};">
+                                    ${examScore.percentage}%
                                 </div>
                             </div>
                         </div>
                         <div class="progress-bar" style="margin-top: 1rem;">
-                            <div class="progress-fill" style="width: ${selectedCourse.finalExamScore.percentage}%; background: ${getScoreColor(selectedCourse.finalExamScore.percentage)};"></div>
+                            <div class="progress-fill" style="width: ${examScore.percentage}%; background: ${getScoreColor(examScore.percentage)};"></div>
                         </div>
                     </div>
                 `;
             } else {
-                document.getElementById('finalExamResult').innerHTML = `
+                return `
                     <div class="card text-center">
                         <div style="color: #666; padding: 2rem;">
                             <div style="font-size: 2rem; margin-bottom: 1rem;">🎯</div>
@@ -497,6 +676,7 @@
             }
         });
     </script>
+    <script src="navbar.js"></script>
 </body>
 </html>
 

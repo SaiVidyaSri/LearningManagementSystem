@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - LearNova</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding-top: 80px; /* Space for fixed navbar */
+        }
+
+        .analytics-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            margin-top: 2rem; /* Additional space below navbar */
+        }
+
+        .analytics-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+            margin: -2rem -2rem 3rem -2rem;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .analytics-title {
+            text-align: center;
+            margin: 0;
+            font-size: 2.8rem;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .analytics-subtitle {
+            text-align: center;
+            margin: 1rem 0 0 0;
+            opacity: 0.9;
+            font-size: 1.2rem;
+        }
+
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 0;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1rem;
+            margin: 0.5rem 0 0 0;
+        }
+
+        .chart-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .chart-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin: 0 0 1.5rem 0;
+            text-align: center;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 1rem;
+        }
+
+        .courses-performance {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .course-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .course-title {
+            font-size: 1.2rem;
+            color: #333;
+            margin: 0 0 1rem 0;
+            font-weight: 600;
+        }
+
+        .course-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .course-stat {
+            text-align: center;
+        }
+
+        .course-stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+        }
+
+        .course-stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .time-filter {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.8rem 1.5rem;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .recent-activity {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .activity-item {
+            padding: 1rem 0;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            font-size: 1.5rem;
+            width: 40px;
+            text-align: center;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .activity-time {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 0.2rem 0 0 0;
+        }
+
+        @media (max-width: 768px) {
+            .analytics-container {
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .courses-performance {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation will be inserted here -->
+    <div id="navbar-container"></div>
+
+    <main class="analytics-container">
+        <div class="analytics-header">
+            <div class="container">
+                <h1 class="analytics-title">📊 Instructor Analytics</h1>
+                <p class="analytics-subtitle">Track your teaching performance and student engagement</p>
+            </div>
+        </div>
+
+        <!-- Time Filter -->
+        <div class="time-filter">
+            <button class="filter-btn active" onclick="setTimeFilter('7days')">Last 7 Days</button>
+            <button class="filter-btn" onclick="setTimeFilter('30days')">Last 30 Days</button>
+            <button class="filter-btn" onclick="setTimeFilter('3months')">Last 3 Months</button>
+            <button class="filter-btn" onclick="setTimeFilter('1year')">Last Year</button>
+            <button class="filter-btn" onclick="setTimeFilter('all')">All Time</button>
+        </div>
+
+        <!-- Key Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-icon">👨‍🎓</span>
+                <div class="stat-number" id="totalStudents">Loading...</div>
+                <p class="stat-label">Total Students</p>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon">📚</span>
+                <div class="stat-number" id="totalCourses">Loading...</div>
+                <p class="stat-label">Published Courses</p>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon">⭐</span>
+                <div class="stat-number" id="averageRating">Loading...</div>
+                <p class="stat-label">Average Rating</p>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon">💰</span>
+                <div class="stat-number" id="totalRevenue">Loading...</div>
+                <p class="stat-label">Total Revenue</p>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon">🎯</span>
+                <div class="stat-number" id="completionRate">Loading...</div>
+                <p class="stat-label">Completion Rate</p>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon">📈</span>
+                <div class="stat-number" id="newEnrollments">Loading...</div>
+                <p class="stat-label">New Enrollments</p>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-section">
+            <h3 class="chart-title">📈 Enrollment Trends</h3>
+            <div class="chart-container">
+                <canvas id="enrollmentChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <h3 class="chart-title">📊 Course Performance</h3>
+            <div class="chart-container">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Individual Course Performance -->
+        <div class="chart-section">
+            <h3 class="chart-title">🎯 Course Performance Details</h3>
+            <div class="courses-performance" id="coursePerformance">
+                <!-- Course cards will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="recent-activity">
+            <h3 class="chart-title">🔔 Recent Activity</h3>
+            <div id="recentActivity">
+                <!-- Activity items will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <script src="navbar.js"></script>
+    <script>
+        let currentTimeFilter = '7days';
+        let analyticsData = {};
+        let enrollmentChart, performanceChart;
+
+        // Show loading spinner
+        function showLoading() {
+            console.log('🔄 Showing loading state...');
+            
+            // Update stats cards to show loading
+            document.getElementById('totalStudents').textContent = 'Loading...';
+            document.getElementById('totalCourses').textContent = 'Loading...';
+            document.getElementById('averageRating').textContent = 'Loading...';
+            document.getElementById('totalRevenue').textContent = 'Loading...';
+            document.getElementById('completionRate').textContent = 'Loading...';
+            document.getElementById('newEnrollments').textContent = 'Loading...';
+            
+            // Clear chart containers and show loading
+            const loadingHTML = '<div class="loading-spinner"><div class="spinner"></div>Loading real-time analytics...</div>';
+            
+            const enrollmentChartDiv = document.getElementById('enrollmentChart');
+            const performanceChartDiv = document.getElementById('performanceChart');
+            const coursePerformanceDiv = document.getElementById('coursePerformance');
+            const recentActivityDiv = document.getElementById('recentActivity');
+            
+            if (enrollmentChartDiv) enrollmentChartDiv.innerHTML = loadingHTML;
+            if (performanceChartDiv) performanceChartDiv.innerHTML = loadingHTML;
+            if (coursePerformanceDiv) coursePerformanceDiv.innerHTML = loadingHTML;
+            if (recentActivityDiv) recentActivityDiv.innerHTML = loadingHTML;
+        }
+
+        // Show error message
+        function showError(message) {
+            console.log('❌ Showing error state:', message);
+            
+            // Update stats to show error
+            document.getElementById('totalStudents').textContent = 'Error';
+            document.getElementById('totalCourses').textContent = 'Error';
+            document.getElementById('averageRating').textContent = 'Error';
+            document.getElementById('totalRevenue').textContent = 'Error';
+            document.getElementById('completionRate').textContent = 'Error';
+            document.getElementById('newEnrollments').textContent = 'Error';
+            
+            const errorHTML = `
+                <div class="error-message" style="
+                    text-align: center;
+                    padding: 2rem;
+                    color: #e74c3c;
+                    background-color: #fdf2f2;
+                    border: 1px solid #fecaca;
+                    border-radius: 8px;
+                    margin: 1rem 0;
+                ">
+                    <h3>Unable to Load Analytics</h3>
+                    <p>${message}</p>
+                    <button onclick="loadAnalyticsData()" style="
+                        background: #667eea;
+                        color: white;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        margin-top: 1rem;
+                    ">Retry</button>
+                </div>
+            `;
+            
+            // Show error in chart sections
+            const enrollmentChartDiv = document.getElementById('enrollmentChart');
+            const performanceChartDiv = document.getElementById('performanceChart');
+            const coursePerformanceDiv = document.getElementById('coursePerformance');
+            const recentActivityDiv = document.getElementById('recentActivity');
+            
+            if (enrollmentChartDiv) enrollmentChartDiv.innerHTML = errorHTML;
+            if (performanceChartDiv) performanceChartDiv.innerHTML = errorHTML;
+            if (coursePerformanceDiv) coursePerformanceDiv.innerHTML = errorHTML;
+            if (recentActivityDiv) recentActivityDiv.innerHTML = errorHTML;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadAnalyticsData();
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+            if (!token || user.role !== 'instructor') {
+                alert('Access denied. Instructor login required.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            console.log('✅ Instructor authenticated:', user.fullName);
+        }
+
+        function setTimeFilter(filter) {
+            currentTimeFilter = filter;
+            
+            // Update button styles
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Reload data with new filter
+            loadAnalyticsData();
+        }
+
+        async function loadAnalyticsData() {
+            try {
+                showLoading();
+                const token = localStorage.getItem('token');
+                
+                if (!token) {
+                    throw new Error('No authentication token found. Please login again.');
+                }
+                
+                console.log('🔄 Loading real-time analytics data with filter:', currentTimeFilter);
+                
+                // Load instructor analytics from real database
+                const response = await fetch(`/api/instructor-analytics?timeFilter=${currentTimeFilter}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('📡 API Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    throw new Error(`Server returned ${response.status}: ${response.statusText || 'Unknown error'}`);
+                }
+
+                const responseData = await response.json();
+                console.log('✅ Raw analytics data received:', responseData);
+                
+                if (!responseData || typeof responseData !== 'object') {
+                    throw new Error('Invalid data format received from server');
+                }
+
+                analyticsData = responseData;
+                console.log('✅ Real-time analytics loaded successfully');
+                updateDashboard();
+                
+            } catch (error) {
+                console.error('❌ Error loading real-time analytics:', error);
+                showError(`Failed to load analytics data: ${error.message}. Please check your connection and try again.`);
+            }
+        }
+
+        function updateDashboard() {
+            updateStats();
+            updateCharts();
+            updateCoursePerformance();
+            updateRecentActivity();
+        }
+
+        function updateStats() {
+            console.log('📊 Updating stats with data:', analyticsData.stats);
+            const stats = analyticsData.stats || {};
+            
+            try {
+                document.getElementById('totalStudents').textContent = stats.totalStudents || 0;
+                document.getElementById('totalCourses').textContent = stats.totalCourses || 0;
+                document.getElementById('averageRating').textContent = (stats.averageRating || 0).toFixed(1);
+                document.getElementById('totalRevenue').textContent = `$${stats.totalRevenue || 0}`;
+                document.getElementById('completionRate').textContent = `${stats.completionRate || 0}%`;
+                document.getElementById('newEnrollments').textContent = stats.newEnrollments || 0;
+                console.log('✅ Stats updated successfully');
+            } catch (error) {
+                console.error('❌ Error updating stats:', error);
+            }
+        }
+
+        function updateCharts() {
+            console.log('📊 Updating charts with data:', {
+              enrollmentTrends: analyticsData.enrollmentTrends,
+              coursePerformance: analyticsData.coursePerformance
+            });
+            
+            // Destroy existing charts
+            if (enrollmentChart) {
+                enrollmentChart.destroy();
+                enrollmentChart = null;
+            }
+            if (performanceChart) {
+                performanceChart.destroy();
+                performanceChart = null;
+            }
+
+            try {
+                // Enrollment Trends Chart
+                const enrollmentCanvas = document.getElementById('enrollmentChart');
+                if (enrollmentCanvas) {
+                    const ctx1 = enrollmentCanvas.getContext('2d');
+                    const enrollmentData = analyticsData.enrollmentTrends || {};
+                    
+                    enrollmentChart = new Chart(ctx1, {
+                        type: 'line',
+                        data: {
+                            labels: enrollmentData.labels || ['No Data'],
+                            datasets: [{
+                                label: 'New Enrollments',
+                                data: enrollmentData.data || [0],
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.1)'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Course Performance Chart
+                const performanceCanvas = document.getElementById('performanceChart');
+                if (performanceCanvas) {
+                    const ctx2 = performanceCanvas.getContext('2d');
+                    const courses = analyticsData.coursePerformance || [];
+                    const courseNames = courses.map(course => course.name) || ['No Courses'];
+                    const completionRates = courses.map(course => course.completion) || [0];
+
+                    performanceChart = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: courseNames,
+                            datasets: [{
+                                label: 'Completion Rate (%)',
+                                data: completionRates,
+                                backgroundColor: [
+                                    'rgba(102, 126, 234, 0.8)',
+                                    'rgba(118, 75, 162, 0.8)',
+                                    'rgba(255, 99, 132, 0.8)',
+                                    'rgba(54, 162, 235, 0.8)',
+                                    'rgba(255, 206, 86, 0.8)',
+                                    'rgba(75, 192, 192, 0.8)'
+                                ],
+                                borderColor: [
+                                    '#667eea',
+                                    '#764ba2',
+                                    '#ff6384',
+                                    '#36a2eb',
+                                    '#ffce56',
+                                    '#4bc0c0'
+                                ],
+                                borderWidth: 2,
+                                borderRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.1)'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                console.log('✅ Charts updated successfully');
+            } catch (error) {
+                console.error('❌ Error updating charts:', error);
+            }
+        }
+
+        function updateCoursePerformance() {
+            const container = document.getElementById('coursePerformance');
+            const courses = analyticsData.coursePerformance || [];
+
+            if (courses.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No course data available</p>';
+                return;
+            }
+
+            container.innerHTML = courses.map(course => `
+                <div class="course-card">
+                    <h4 class="course-title">📚 ${course.name}</h4>
+                    <div class="course-stats">
+                        <div class="course-stat">
+                            <span class="course-stat-number">${course.students}</span>
+                            <div class="course-stat-label">Students</div>
+                        </div>
+                        <div class="course-stat">
+                            <span class="course-stat-number">${course.rating.toFixed(1)} ⭐</span>
+                            <div class="course-stat-label">Rating</div>
+                        </div>
+                        <div class="course-stat">
+                            <span class="course-stat-number">${course.completion}%</span>
+                            <div class="course-stat-label">Completion</div>
+                        </div>
+                        <div class="course-stat">
+                            <span class="course-stat-number">$${course.revenue}</span>
+                            <div class="course-stat-label">Revenue</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${course.completion}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateRecentActivity() {
+            const container = document.getElementById('recentActivity');
+            const activities = analyticsData.recentActivity || [];
+
+            if (activities.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No recent activity</p>';
+                return;
+            }
+
+            container.innerHTML = activities.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon">${activity.icon}</div>
+                    <div class="activity-content">
+                        <div class="activity-title">${activity.title}</div>
+                        <div class="activity-time">${activity.time}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Export functionality
+        function exportAnalytics() {
+            const data = {
+                timeFilter: currentTimeFilter,
+                generatedAt: new Date().toISOString(),
+                stats: analyticsData.stats,
+                courses: analyticsData.coursePerformance
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `instructor-analytics-${currentTimeFilter}-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

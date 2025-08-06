@@ -5,26 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - LearNova</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <a href="dashboard.html" class="logo"><img src="/path/to/your/logo.png" alt="LearNova Logo" style="height: 40px;"></a>
-                <ul class="nav-links">
-                    <li><a href="dashboard.html">Dashboard</a></li>
-                    <li><a href="courses.html">Courses</a></li>
-                    <li><a href="my-courses.html">My Courses</a></li>
-                    <li><a href="progress.html">Progress</a></li>
-                </ul>
-                <div class="user-info">
-                    <span id="userWelcome">Welcome!</span>
-                    <button class="logout-btn" onclick="logout()">Logout</button>
-                </div>
-            </nav>
-        </div>
-    </header>
+    <!-- Navbar will be inserted here by navbar.js -->
 
     <main class="main-content">
         <div class="container">
@@ -147,27 +132,22 @@
         </div>
     </footer>
 
+    <script src="navbar.js"></script>
     <script>
         let currentUser = null;
         let originalData = {};
 
         // Check authentication
         function checkAuth() {
-            const user = localStorage.getItem('user');
+            // Check both 'user' and 'userData' for compatibility
+            const user = localStorage.getItem('userData') || localStorage.getItem('user');
             if (!user) {
                 window.location.href = 'login.html';
                 return null;
             }
             
             currentUser = JSON.parse(user);
-            document.getElementById('userWelcome').textContent = `Welcome, ${currentUser.username}!`;
             return currentUser;
-        }
-
-        // Logout function
-        function logout() {
-            localStorage.removeItem('user');
-            window.location.href = 'index.html';
         }
 
         // Load user profile
@@ -175,12 +155,50 @@
             if (!currentUser) return;
 
             try {
-                // Load user data
-                const userResponse = await fetch(`/api/user/${encodeURIComponent(currentUser.username)}`);
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Load user data using the new endpoint
+                const userResponse = await fetch('/api/user-profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!userResponse.ok) {
+                    if (userResponse.status === 401) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    throw new Error(`Failed to load user data: ${userResponse.status}`);
+                }
+                
                 const userData = await userResponse.json();
                 
                 // Load progress data for stats
-                const progressResponse = await fetch(`/api/student-progress-details?username=${encodeURIComponent(currentUser.username)}&email=${encodeURIComponent(currentUser.email)}`);
+                const progressResponse = await fetch(`/api/student-progress-details`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!progressResponse.ok) {
+                    if (progressResponse.status === 401) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    throw new Error(`Failed to load progress data: ${progressResponse.status}`);
+                }
+                
                 const progressData = await progressResponse.json();
                 
                 displayProfile(userData, progressData);
@@ -255,13 +273,19 @@
             }
             
             try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
                 const response = await fetch('/api/update-profile', {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        username: currentUser.username,
                         fullName: fullName
                     })
                 });
@@ -272,8 +296,23 @@
                     showAlert('Profile updated successfully!', 'success');
                     originalData.fullName = fullName;
                     document.getElementById('profileName').textContent = fullName;
+                    
+                    // Update the stored user data in localStorage
+                    const updatedUser = { ...currentUser, fullName: fullName, username: fullName };
+                    // Update localStorage with both keys for compatibility
+                    localStorage.setItem('userData', JSON.stringify(updatedUser));
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                    currentUser = updatedUser;
+                    document.getElementById('userWelcome').textContent = `Welcome, ${fullName}!`;
+                    
                     cancelEdit();
                 } else {
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.html';
+                        return;
+                    }
                     showAlert(result.error || 'Failed to update profile.');
                 }
                 
@@ -305,13 +344,19 @@
             }
             
             try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
                 const response = await fetch('/api/change-password', {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        username: currentUser.username,
                         currentPassword: currentPassword,
                         newPassword: newPassword
                     })
@@ -323,6 +368,12 @@
                     showAlert('Password changed successfully!', 'success');
                     document.getElementById('passwordForm').reset();
                 } else {
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.html';
+                        return;
+                    }
                     showAlert(result.error || 'Failed to change password.');
                 }
                 
@@ -335,7 +386,29 @@
         // Download user data
         async function downloadData() {
             try {
-                const response = await fetch(`/api/user-data/${encodeURIComponent(currentUser.username)}`);
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                const response = await fetch('/api/user-data', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    throw new Error(`Failed to download data: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
                 const dataStr = JSON.stringify(data, null, 2);
@@ -343,7 +416,7 @@
                 
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(dataBlob);
-                link.download = `${currentUser.username}_data.json`;
+                link.download = `${currentUser.fullName || currentUser.username}_data.json`;
                 link.click();
                 
                 showAlert('Data download started!', 'success');

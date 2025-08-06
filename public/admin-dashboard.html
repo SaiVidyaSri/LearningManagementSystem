@@ -48,12 +48,12 @@
     <header class="header admin-nav">
         <div class="container">
             <nav class="nav">
-                <a href="admin-dashboard.html" class="logo"></a>
+                <a href="admin-dashboard.html" class="logo" style="color: white; text-decoration: none;">📚 LearNova</a>
                 <ul class="nav-links">
                     <li><a href="admin-dashboard.html">Dashboard</a></li>
                     <li><a href="admin-users.html">Users</a></li>
                     <li><a href="admin-courses.html">Courses</a></li>
-                    <li><a href="ipending.html">Instructors</a></li>
+                    <li><a href="admin-instructors.html">Instructors</a></li>
                     <li><a href="admin-reviews.html">Reviews</a></li>
                     <li><a href="admin-reports.html">Reports</a></li>
                 </ul>
@@ -226,38 +226,53 @@
         // Logout function
         function logout() {
             localStorage.removeItem('user');
+            localStorage.removeItem('token');
             window.location.href = 'index.html';
         }
 
         // Load admin statistics
-async function loadAdminStats() {
-    if (!currentUser) return;
+        async function loadAdminStats() {
+            if (!currentUser) return;
 
-    try {
-        const response = await fetch('/api/admin/statistics', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            try {
+                const response = await fetch('/api/admin/statistics', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch statistics');
+                }
+
+                const stats = await response.json();
+
+                // Update UI with real statistics
+                animateNumber('totalUsers', stats.users.total);
+                animateNumber('totalStudents', stats.users.students);
+                animateNumber('totalInstructors', stats.users.instructors);
+                animateNumber('pendingInstructors', stats.users.pendingInstructors);
+                animateNumber('totalCourses', stats.courses.total);
+                animateNumber('totalEnrollments', stats.courses.enrollments);
+                animateNumber('completedCourses', stats.courses.completed);
+                animateNumber('certificatesIssued', stats.certificates);
+                
+                // Update completion rate
+                document.getElementById('completionRate').textContent = stats.courses.completionRate + '%';
+                
+                // Update other metrics
+                animateNumber('openQueries', stats.queries.open);
+                animateNumber('totalReviews', stats.reviews.total);
+
+                // Load other sections after stats are loaded
+                loadPendingApplications();
+                loadRecentActivity();
+
+            } catch (error) {
+                console.error('Error loading admin stats:', error);
+                showAlert('Unable to load dashboard data.', 'error');
             }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch statistics');
         }
-
-        const stats = await response.json();
-
-        // Update UI with real statistics
-        animateNumber('totalUsers', stats.users.total);
-        animateNumber('totalStudents', stats.users.students);
-        animateNumber('totalInstructors', stats.users.instructors);
-        animateNumber('pendingInstructors', stats.users.pendingInstructors);
-        // ... more updates
-
-    } catch (error) {
-        console.error('Error loading admin stats:', error);
-        showAlert('Unable to load dashboard data.');
-    }
-}
 
         // Load pending instructor applications
         async function loadPendingApplications() {
@@ -272,10 +287,11 @@ async function loadAdminStats() {
                     throw new Error('Failed to fetch applications');
                 }
 
-                const applications = await response.json();
+                const data = await response.json();
+                const applications = data.users || data; // Handle both response formats
                 const container = document.getElementById('pendingApplications');
 
-                if (applications.length === 0) {
+                if (!applications || applications.length === 0) {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 2rem; color: #666;">
                             <div style="font-size: 2rem; margin-bottom: 1rem;">✅</div>
@@ -301,11 +317,11 @@ async function loadAdminStats() {
                                 <tr>
                                     <td>${app.fullName}</td>
                                     <td>${app.email}</td>
-                                    <td>${app.experience || 0} years</td>
+                                    <td>${app.instructorApplication?.experience || app.experience || 0} years</td>
                                     <td>${new Date(app.instructorApplication?.appliedAt || app.createdAt).toLocaleDateString()}</td>
                                     <td>
-                                        <button onclick="reviewApplication('${app._id}', 'approved')" class="btn btn-sm btn-success">Approve</button>
-                                        <button onclick="reviewApplication('${app._id}', 'rejected')" class="btn btn-sm btn-danger">Reject</button>
+                                        <button onclick="reviewApplication('${app._id}', 'approved')" class="btn btn-sm" style="background: #28a745; color: white; margin-right: 0.5rem;">Approve</button>
+                                        <button onclick="reviewApplication('${app._id}', 'rejected')" class="btn btn-sm" style="background: #dc3545; color: white;">Reject</button>
                                     </td>
                                 </tr>
                             `).join('')}
@@ -317,7 +333,7 @@ async function loadAdminStats() {
                 console.error('Error loading applications:', error);
                 document.getElementById('pendingApplications').innerHTML = `
                     <div style="text-align: center; padding: 2rem; color: #dc3545;">
-                        <p>Error loading applications.</p>
+                        <p>Error loading applications: ${error.message}</p>
                     </div>
                 `;
             }
@@ -388,45 +404,45 @@ async function loadAdminStats() {
         }
 
         // Review instructor application
-async function reviewApplication(userId, status) {
-    let rejectionReason = '';
-    
-    if (status === 'rejected') {
-        rejectionReason = prompt('Please provide a reason for rejection:');
-        if (!rejectionReason) {
-            return; // User cancelled
+        async function reviewApplication(userId, status) {
+            let rejectionReason = '';
+            
+            if (status === 'rejected') {
+                rejectionReason = prompt('Please provide a reason for rejection:');
+                if (!rejectionReason) {
+                    return; // User cancelled
+                }
+            }
+
+            try {
+                const response = await fetch('/api/admin/instructor-status', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        userId,
+                        status,
+                        rejectionReason
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert(`Instructor application ${status} successfully!`, 'success');
+                    loadPendingApplications(); // Refresh the list
+                    loadAdminStats(); // Refresh stats
+                } else {
+                    showAlert(result.error || 'Failed to update application status', 'error');
+                }
+
+            } catch (error) {
+                console.error('Error reviewing application:', error);
+                showAlert('Network error. Please try again.', 'error');
+            }
         }
-    }
-
-    try {
-        const response = await fetch('/api/admin/instructor-status', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-                userId,
-                status,
-                rejectionReason
-            })
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            showAlert(`Instructor application ${status}!`, 'success');
-            loadPendingApplications(); // Refresh the list
-            loadAdminStats(); // Refresh stats
-        } else {
-            showAlert(result.error || 'Failed to update application status');
-        }
-
-    } catch (error) {
-        console.error('Error reviewing application:', error);
-        showAlert('Network error. Please try again.');
-    }
-}
 
         // Animate number counting
         function animateNumber(elementId, targetNumber) {
