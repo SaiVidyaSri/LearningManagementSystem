@@ -89,8 +89,8 @@ A comprehensive Learning Management System built with Node.js, Express, MongoDB,
 
 ### 1. **Clone the Repository**
 ```bash
-git clone https://github.com/yourusername/learnova-lms.git
-cd learnova-lms
+git clone https://github.com/SaiVidyaSri/LearningManagementSystem.git
+cd LearningManagementSystem
 ```
 
 ### 2. **Install Dependencies**
@@ -311,7 +311,7 @@ npm run lint
 
 ## 🐛 **Bug Reports & Feature Requests**
 
-Please use the [GitHub Issues](https://github.com/yourusername/learnova-lms/issues) page to:
+Please use the [GitHub Issues](https://github.com/SaiVidyaSri/LearningManagementSystem/issues) page to:
 - Report bugs
 - Request new features
 - Suggest improvements
@@ -382,8 +382,8 @@ copies or substantial portions of the Software.
 
 ## 👥 **Team**
 
-- **[Your Name]** - *Lead Developer* - [GitHub](https://github.com/yourusername)
-- **Contributors** - See [Contributors](https://github.com/yourusername/learnova-lms/contributors)
+- **SaiVidyaSri** - *Lead Developer* - [GitHub](https://github.com/SaiVidyaSri)
+- **Contributors** - See [Contributors](https://github.com/SaiVidyaSri/LearningManagementSystem/contributors)
 
 ## 🙏 **Acknowledgments**
 
@@ -402,8 +402,8 @@ copies or substantial portions of the Software.
 ### **Community**
 - 💬 [Discord Server](https://discord.gg/learnova)
 - 📧 [Email Support](mailto:support@learnova.com)
-- 🐛 [GitHub Issues](https://github.com/yourusername/learnova-lms/issues)
-- 📖 [Wiki](https://github.com/yourusername/learnova-lms/wiki)
+- 🐛 [GitHub Issues](https://github.com/SaiVidyaSri/LearningManagementSystem/issues)
+- 📖 [Wiki](https://github.com/SaiVidyaSri/LearningManagementSystem/wiki)
 
 ### **Professional Support**
 For enterprise support and custom development:
@@ -418,7 +418,7 @@ For enterprise support and custom development:
 
 Made with ❤️ by the LearNova Team
 
-[🚀 Live Demo](https://learnova-demo.herokuapp.com) | [📖 Documentation](./API_DOCUMENTATION.md) | [🐛 Report Bug](https://github.com/yourusername/learnova-lms/issues) | [💡 Request Feature](https://github.com/yourusername/learnova-lms/issues)
+[🚀 Live Demo](https://learnova-demo.herokuapp.com) | [📖 Documentation](./API_DOCUMENTATION.md) | [🐛 Report Bug](https://github.com/SaiVidyaSri/LearningManagementSystem/issues) | [💡 Request Feature](https://github.com/SaiVidyaSri/LearningManagementSystem/issues)
 
 </div>
 

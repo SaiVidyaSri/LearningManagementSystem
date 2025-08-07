@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Learning - LearNova</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        body {
+            margin: 0;
+            background: #f8f9fa;
+        }
+
+        .learning-container {
+            display: flex;
+            min-height: calc(100vh - 80px);
+            margin-top: 80px; /* Space for fixed navbar */
+        }
+        .sidebar {
+            width: 300px;
+            background: #f8f9ff;
+            border-right: 1px solid #e1e5e9;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        .content-area {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        .module-item {
+            margin-bottom: 1rem;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .module-header {
+            padding: 1rem;
+            background: #fff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .module-header:hover {
+            background: #f8f9ff;
+        }
+        .module-content {
+            display: none;
+            background: #f9f9f9;
+        }
+        .module-content.active {
+            display: block;
+        }
+        .lesson-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e1e5e9;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lesson-item:hover {
+            background: #e6e9ff;
+        }
+        .lesson-item.active {
+            background: #667eea;
+            color: white;
+        }
+        .lesson-item.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        .lesson-status {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            background: #e1e5e9;
+            color: #666;
+        }
+        .lesson-status.completed {
+            background: #28a745;
+            color: white;
+        }
+        .lesson-status.exam-required {
+            background: #ffc107;
+            color: #856404;
+        }
+        .lesson-status.exam-in-progress {
+            background: #ff6b35;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .lesson-content {
+            max-width: 800px;
+        }
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            background: #000;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        .video-container iframe,
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .exam-container {
+            background: #fff;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        .question-item {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .question-options {
+            margin-top: 1rem;
+        }
+        .option-item {
+            margin-bottom: 0.5rem;
+        }
+        .option-item label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        .option-item label:hover {
+            background: #e6e9ff;
+        }
+        .option-item input {
+            margin-right: 0.75rem;
+        }
+        .exam-timer {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #fff;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .exam-results {
+            background: #f8f9ff;
+            border: 1px solid #667eea;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        .result-item {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        .result-correct {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .result-incorrect {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+        @media (max-width: 768px) {
+            .learning-container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation will be inserted here -->
+    <div id="navbar-container"></div>
+
+    <main class="learning-container">
+        <!-- Course Sidebar -->
+        <aside class="sidebar">
+            <div id="courseInfo" style="margin-bottom: 2rem;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            
+            <div id="courseModules">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Content Area -->
+        <section class="content-area">
+            <div id="lessonContent">
+                <div class="lesson-content">
+                    <div style="text-align: center; padding: 3rem; color: #666;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📚</div>
+                        <h2>Select a lesson to start learning</h2>
+                        <p>Choose a lesson from the sidebar to begin your learning journey.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Exam Timer (Hidden by default) -->
+    <div id="examTimer" class="exam-timer" style="display: none;">
+        <div style="text-align: center;">
+            <div style="font-weight: bold; margin-bottom: 0.5rem;">Time Remaining</div>
+            <div id="timerDisplay" style="font-size: 1.5rem; color: #dc3545;">30:00</div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentCourse = null;
+        let currentLesson = null;
+        let enrollment = null;
+        let examTimer = null;
+        let examTimeRemaining = 0;
+        let currentExamData = null;
+        let examInProgress = false;
+        let finalExamTimer = null;
+        let finalExamTimeRemaining = 0;
+
+        // Helper function to convert YouTube URLs to embeddable format
+        function getEmbedUrl(url) {
+            if (!url) return '';
+            
+            // YouTube URL patterns
+            const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const match = url.match(youtubeRegex);
+            
+            if (match && match[1]) {
+                // Convert to embed URL with API enabled for tracking
+                return `https://www.youtube.com/embed/${match[1]}?enablejsapi=1&rel=0&modestbranding=1`;
+            }
+            
+            // Vimeo URL pattern
+            const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
+            const vimeoMatch = url.match(vimeoRegex);
+            
+            if (vimeoMatch && vimeoMatch[1]) {
+                return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+            }
+            
+            // If already an embed URL or other video platform, return as is
+            if (url.includes('embed') || url.includes('player')) {
+                return url;
+            }
+            
+            // Default return the original URL
+            return url;
+        }
+
+        // Helper function to get YouTube video ID
+        function getVideoId(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
+        }
+
+        // Video tracking functionality
+        let videoTracker = null;
+        let videoStartTime = null;
+        let videoDuration = 0;
+        let watchedTime = 0;
+        let checkInterval = null;
+
+        function initVideoTracking(videoId) {
+            // Initialize YouTube Player API when available
+            if (typeof YT !== 'undefined' && YT.Player) {
+                try {
+                    videoTracker = new YT.Player('lessonVideo', {
+                        events: {
+                            'onReady': onPlayerReady,
+                            'onStateChange': onPlayerStateChange
+                        }
+                    });
+                } catch (error) {
+                    console.log('YouTube API not available for tracking');
+                }
+            }
+        }
+
+        function onPlayerReady(event) {
+            videoDuration = event.target.getDuration();
+            console.log('Video duration:', videoDuration);
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                videoStartTime = Date.now();
+                startWatchTracking();
+            } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+                if (videoStartTime) {
+                    watchedTime += (Date.now() - videoStartTime) / 1000;
+                    videoStartTime = null;
+                }
+                stopWatchTracking();
+                
+                if (event.data === YT.PlayerState.ENDED) {
+                    // Video completed - auto mark as complete
+                    autoCompleteLesson();
+                }
+            }
+        }
+
+        function startWatchTracking() {
+            if (checkInterval) clearInterval(checkInterval);
+            
+            checkInterval = setInterval(() => {
+                if (videoStartTime && videoDuration > 0) {
+                    const currentWatchTime = watchedTime + (Date.now() - videoStartTime) / 1000;
+                    const completionPercentage = (currentWatchTime / videoDuration) * 100;
+                    
+                    // Auto-complete if 90% or more of video is watched
+                    if (completionPercentage >= 90) {
+                        autoCompleteLesson();
+                    }
+                }
+            }, 5000); // Check every 5 seconds
+        }
+
+        function stopWatchTracking() {
+            if (checkInterval) {
+                clearInterval(checkInterval);
+                checkInterval = null;
+            }
+        }
+
+        function autoCompleteLesson() {
+            if (currentLesson && !currentLesson.completed) {
+                console.log('Auto-completing lesson after video completion');
+                markLessonComplete();
+            }
+        }
+
+        // Function to continue to next lesson
+        async function continueToNextLesson() {
+            if (!currentCourse || !currentCourse.modules) {
+                await loadCourseContent();
+                return;
+            }
+
+            // Find the next incomplete lesson
+            let nextLesson = null;
+            let found = false;
+
+            // If there's a current lesson, start from the next one
+            if (currentLesson) {
+                const currentModuleIndex = currentLesson.moduleIndex;
+                const currentLessonIndex = currentLesson.lessonIndex;
+
+                // Check remaining lessons in current module
+                for (let lessonIndex = currentLessonIndex + 1; lessonIndex < currentCourse.modules[currentModuleIndex].lessons.length; lessonIndex++) {
+                    if (!isLessonCompleted(currentModuleIndex, lessonIndex)) {
+                        nextLesson = { moduleIndex: currentModuleIndex, lessonIndex };
+                        found = true;
+                        break;
+                    }
+                }
+
+                // If no more lessons in current module, check next modules
+                if (!found) {
+                    for (let moduleIndex = currentModuleIndex + 1; moduleIndex < currentCourse.modules.length; moduleIndex++) {
+                        for (let lessonIndex = 0; lessonIndex < currentCourse.modules[moduleIndex].lessons.length; lessonIndex++) {
+                            if (!isLessonCompleted(moduleIndex, lessonIndex)) {
+                                nextLesson = { moduleIndex, lessonIndex };
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) break;
+                    }
+                }
+            } else {
+                // If no current lesson, find the first incomplete lesson
+                for (let moduleIndex = 0; moduleIndex < currentCourse.modules.length; moduleIndex++) {
+                    for (let lessonIndex = 0; lessonIndex < currentCourse.modules[moduleIndex].lessons.length; lessonIndex++) {
+                        if (!isLessonCompleted(moduleIndex, lessonIndex)) {
+                            nextLesson = { moduleIndex, lessonIndex };
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+                }
+            }
+
+            if (nextLesson) {
+                // Load the next lesson
+                loadLesson(nextLesson.moduleIndex, nextLesson.lessonIndex);
+                
+                // Show success message
+                showAlert('Moved to next lesson!', 'success');
+                
+                // Update progress display
+                displayCourseInfo();
+            } else {
+                // All lessons completed
+                showAlert('Congratulations! You have completed all lessons in this course!', 'success');
+                
+                // Refresh course data to show updated progress
+                await loadCourseContent();
+                displayCourseModules();
+                displayCourseInfo();
+            }
+        }
+
+        // Load YouTube API
+        function loadYouTubeAPI() {
+            if (typeof YT === 'undefined') {
+                const tag = document.createElement('script');
+                tag.src = 'https://www.youtube.com/iframe_api';
+                const firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            }
+        }
+
+        // Check authentication
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            if (!token || !user) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            
+            currentUser = JSON.parse(user);
+            return currentUser;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Get course name from URL
+        function getCourseNameFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('course');
+        }
+
+        // Load course content
+        async function loadCourseContent() {
+            console.log('loadCourseContent called');
+            console.log('currentUser:', currentUser);
+            
+            if (!currentUser) {
+                console.log('No current user, cannot load course');
+                return;
+            }
+
+            const courseName = getCourseNameFromUrl();
+            console.log('Course name from URL:', courseName);
+            console.log('Full URL:', window.location.href);
+            console.log('URL search params:', window.location.search);
+            
+            if (!courseName) {
+                console.log('No course name found in URL');
+                showAlert('No course specified', 'error');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                console.log('Token available:', !!token);
+                
+                // First, find the course by name
+                console.log('Fetching course by name:', courseName);
+                const courseResponse = await fetch(`/api/courses/${encodeURIComponent(courseName)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Course response status:', courseResponse.status);
+                if (!courseResponse.ok) {
+                    const errorText = await courseResponse.text();
+                    console.log('Course response error:', errorText);
+                    throw new Error('Failed to fetch course');
+                }
+
+                currentCourse = await courseResponse.json();
+                console.log('Loaded course:', currentCourse.name, 'ID:', currentCourse._id, 'Status:', currentCourse.status);
+                console.log('Modules:', currentCourse.modules?.length, 'Total lessons:', 
+                    currentCourse.modules?.reduce((total, mod) => total + (mod.lessons?.length || 0), 0));
+
+                // Get course content with enrollment data
+                console.log('Fetching course content with enrollment data...');
+                const contentResponse = await fetch(`/api/courses/${currentCourse._id}/content`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Content response status:', contentResponse.status);
+                if (!contentResponse.ok) {
+                    const errorText = await contentResponse.text();
+                    console.log('Content response error:', errorText);
+                    throw new Error('Failed to fetch course content');
+                }
+
+                const contentData = await contentResponse.json();
+                enrollment = contentData.enrollment;
+                console.log('Content data received. Final course:', contentData.course.name, 'ID:', contentData.course._id);
+                console.log('Final modules:', contentData.course.modules?.length, 'Total lessons:', 
+                    contentData.course.modules?.reduce((total, mod) => total + (mod.lessons?.length || 0), 0));
+                console.log('Enrollment data:', enrollment);
+                
+                // Use the course from content data (which should be the correct enrolled course)
+                currentCourse = contentData.course;
+
+                console.log('Displaying course info and modules...');
+                displayCourseInfo();
+                displayCourseModules();
+                console.log('Course content loading completed successfully');
+
+            } catch (error) {
+                console.error('Error loading course:', error);
+                showAlert('Failed to load course content', 'error');
+            }
+        }
+
+        // Display course information
+        function displayCourseInfo() {
+            const container = document.getElementById('courseInfo');
+            const progress = enrollment.progress.overallProgress || 0;
+            
+            // Debug logging for progress
+            console.log('Displaying course info - Progress:', progress + '%');
+            console.log('Enrollment progress object:', enrollment.progress);
+            
+            let finalExamSection = '';
+            
+            // Check if course is 100% complete and has a final exam
+            if (progress >= 100 && currentCourse.finalExam && currentCourse.finalExam.isEnabled) {
+                const finalExamTaken = enrollment.progress.finalExamCompleted || false;
+                const finalExamPassed = enrollment.progress.finalExamPassed || false;
+                const certificateGenerated = enrollment.progress.certificateGenerated || false;
+                
+                if (!finalExamTaken) {
+                    // Show final exam prompt
+                    finalExamSection = `
+                        <div style="margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2rem; margin-bottom: 1rem;">🎓</div>
+                            <h3 style="margin-bottom: 1rem; color: white;">Congratulations!</h3>
+                            <p style="margin-bottom: 1rem; opacity: 0.9;">You have completed all lessons in this course!</p>
+                            <p style="margin-bottom: 2rem; font-weight: bold;">Take the final examination to earn your certificate.</p>
+                            <button onclick="startFinalExam()" class="btn" style="background: white; color: #667eea; border: none; padding: 1rem 2rem; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                                🎯 Take Final Exam
+                            </button>
+                        </div>
+                    `;
+                } else if (finalExamPassed && !certificateGenerated) {
+                    // Show certificate option
+                    finalExamSection = `
+                        <div style="margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2rem; margin-bottom: 1rem;">🏆</div>
+                            <h3 style="margin-bottom: 1rem; color: white;">Exam Passed!</h3>
+                            <p style="margin-bottom: 1rem; opacity: 0.9;">You scored ${enrollment.progress.finalExamScore}% on the final exam.</p>
+                            <p style="margin-bottom: 2rem; font-weight: bold;">You're now eligible for your course certificate!</p>
+                            <button onclick="generateCertificate()" class="btn" style="background: white; color: #28a745; border: none; padding: 1rem 2rem; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                                📜 Get Certificate
+                            </button>
+                        </div>
+                    `;
+                } else if (certificateGenerated) {
+                    // Show certificate ready message
+                    finalExamSection = `
+                        <div style="margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); color: white; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2rem; margin-bottom: 1rem;">🎖️</div>
+                            <h3 style="margin-bottom: 1rem; color: white;">Certificate Ready!</h3>
+                            <p style="margin-bottom: 2rem; opacity: 0.9;">Your course completion certificate is ready for download.</p>
+                            <button onclick="downloadCertificate()" class="btn" style="background: white; color: #fd7e14; border: none; padding: 1rem 2rem; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                                📥 Download Certificate
+                            </button>
+                        </div>
+                    `;
+                } else if (finalExamTaken && !finalExamPassed) {
+                    // Show retake option
+                    finalExamSection = `
+                        <div style="margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 2rem; margin-bottom: 1rem;">📝</div>
+                            <h3 style="margin-bottom: 1rem; color: white;">Exam Not Passed</h3>
+                            <p style="margin-bottom: 1rem; opacity: 0.9;">You scored ${enrollment.progress.finalExamScore || 0}%. You need 70% or higher to pass.</p>
+                            <p style="margin-bottom: 2rem; font-weight: bold;">Don't worry! You can retake the exam.</p>
+                            <button onclick="startFinalExam()" class="btn" style="background: white; color: #dc3545; border: none; padding: 1rem 2rem; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                                🔄 Retake Final Exam
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+            
+            container.innerHTML = `
+                <h3 style="margin-bottom: 1rem; color: #333;">${currentCourse.name}</h3>
+                <div style="margin-bottom: 1rem;">
+                    <small style="color: #666;">Overall Progress</small>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progress}%;"></div>
+                    </div>
+                    <small style="color: #667eea; font-weight: bold;">${progress}% Complete</small>
+                </div>
+                <p style="color: #666; font-size: 0.9rem;">${currentCourse.shortDescription}</p>
+                ${finalExamSection}
+            `;
+        }
+
+        // Display course modules and lessons
+        function displayCourseModules() {
+            const container = document.getElementById('courseModules');
+            
+            if (!currentCourse.modules || currentCourse.modules.length === 0) {
+                container.innerHTML = '<p style="color: #666;">No modules available.</p>';
+                return;
+            }
+
+            container.innerHTML = currentCourse.modules.map((module, moduleIndex) => `
+                <div class="module-item">
+                    <div class="module-header" onclick="toggleModule(${moduleIndex})">
+                        <div>
+                            <h4 style="margin: 0; color: #333;">${module.title}</h4>
+                            <small style="color: #666;">${module.lessons.length} lessons</small>
+                        </div>
+                        <span id="moduleToggle${moduleIndex}">▼</span>
+                    </div>
+                    <div class="module-content" id="moduleContent${moduleIndex}">
+                        ${module.lessons.map((lesson, lessonIndex) => createLessonItem(lesson, moduleIndex, lessonIndex)).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Create lesson item HTML
+        function createLessonItem(lesson, moduleIndex, lessonIndex) {
+            const isCompleted = isLessonCompleted(moduleIndex, lessonIndex);
+            const hasExam = lesson.examination && lesson.examination.isEnabled;
+            const isExamInProgress = examInProgress && currentExamData && 
+                                   currentExamData.moduleIndex === moduleIndex && 
+                                   currentExamData.lessonIndex === lessonIndex;
+            
+            // Debug logging for exam detection
+            console.log(`Lesson ${moduleIndex}-${lessonIndex} (${lesson.title}):`, {
+                hasExamination: !!lesson.examination,
+                isEnabled: lesson.examination?.isEnabled,
+                hasQuestions: lesson.examination?.questions?.length > 0,
+                hasExam: hasExam,
+                isCompleted: isCompleted
+            });
+            
+            let statusClass = '';
+            let statusText = '';
+            
+            if (isCompleted) {
+                statusClass = 'completed';
+                statusText = 'Completed';
+            } else if (isExamInProgress) {
+                statusClass = 'exam-in-progress';
+                statusText = 'Exam in Progress';
+            } else if (hasExam) {
+                statusClass = 'exam-required';
+                statusText = 'Exam Required';
+            } else {
+                statusClass = '';
+                statusText = 'Available';
+            }
+
+            return `
+                <div class="lesson-item ${statusClass}" onclick="loadLesson(${moduleIndex}, ${lessonIndex})">
+                    <div>
+                        <div style="font-weight: 500;">${lesson.title}</div>
+                        <small style="opacity: 0.8;">${lesson.duration} min${isExamInProgress ? ' • ⏱️ Exam Active' : ''}</small>
+                    </div>
+                    <div class="lesson-status ${statusClass}">${statusText}</div>
+                </div>
+            `;
+        }
+
+        // Check if lesson is completed
+        function isLessonCompleted(moduleIndex, lessonIndex) {
+            if (!enrollment.progress.modules) return false;
+            
+            const moduleProgress = enrollment.progress.modules.find(m => 
+                m.moduleId.toString() === currentCourse.modules[moduleIndex]._id
+            );
+            
+            if (!moduleProgress) return false;
+            
+            const lessonProgress = moduleProgress.lessons.find(l => 
+                l.lessonId.toString() === currentCourse.modules[moduleIndex].lessons[lessonIndex]._id
+            );
+            
+            return lessonProgress && lessonProgress.completed;
+        }
+
+        // Toggle module visibility
+        function toggleModule(moduleIndex) {
+            const content = document.getElementById(`moduleContent${moduleIndex}`);
+            const toggle = document.getElementById(`moduleToggle${moduleIndex}`);
+            
+            if (content.classList.contains('active')) {
+                content.classList.remove('active');
+                toggle.textContent = '▼';
+            } else {
+                content.classList.add('active');
+                toggle.textContent = '▲';
+            }
+        }
+
+        // Load lesson content
+        function loadLesson(moduleIndex, lessonIndex) {
+            const module = currentCourse.modules[moduleIndex];
+            const lesson = module.lessons[lessonIndex];
+            currentLesson = { moduleIndex, lessonIndex, lesson };
+
+            // Update active lesson in sidebar
+            document.querySelectorAll('.lesson-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Find and activate the correct lesson item
+            const targetLessonItem = document.querySelector(`[onclick="loadLesson(${moduleIndex}, ${lessonIndex})"]`);
+            if (targetLessonItem) {
+                targetLessonItem.classList.add('active');
+            }
+
+            // Refresh course info to update progress bar
+            displayCourseInfo();
+            
+            // Check if this lesson has an exam in progress
+            if (examInProgress && currentExamData && 
+                currentExamData.moduleIndex === moduleIndex && 
+                currentExamData.lessonIndex === lessonIndex) {
+                // Resume the exam
+                displayExam(currentExamData);
+            } else {
+                // Clear any exam state if switching to a different lesson
+                if (examInProgress && (currentExamData.moduleIndex !== moduleIndex || currentExamData.lessonIndex !== lessonIndex)) {
+                    clearExamState();
+                }
+                displayLessonContent(lesson);
+            }
+        }
+
+        // Clear exam state
+        function clearExamState() {
+            examInProgress = false;
+            currentExamData = null;
+            if (examTimer) {
+                clearInterval(examTimer);
+                examTimer = null;
+            }
+            examTimeRemaining = 0;
+            document.getElementById('examTimer').style.display = 'none';
+            
+            // Refresh module display to remove exam in progress indicator
+            displayCourseModules();
+        }
+
+        // Display lesson content
+        function displayLessonContent(lesson) {
+            const container = document.getElementById('lessonContent');
+            
+            let contentHTML = `
+                <div class="lesson-content">
+                    <h2 style="margin-bottom: 1rem; color: #333;">${lesson.title}</h2>
+                    <p style="color: #666; margin-bottom: 2rem;">${lesson.description || 'No description available.'}</p>
+            `;
+
+            // Add lesson content based on type and actual data
+            if (!lesson.content) {
+                contentHTML += `
+                    <div style="margin: 2rem 0; padding: 2rem; background: #f8f9fa; border-radius: 8px; text-align: center; color: #666;">
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">📚</div>
+                        <h3>No Content Available</h3>
+                        <p>This lesson content has not been uploaded yet.</p>
+                    </div>
+                `;
+            } else {
+                switch (lesson.type) {
+                    case 'video':
+                        const embedUrl = getEmbedUrl(lesson.content);
+                        const videoId = getVideoId(lesson.content);
+                        contentHTML += `
+                            <div class="video-container">
+                                <iframe src="${embedUrl}" frameborder="0" allowfullscreen 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        onload="initVideoTracking('${videoId}')">
+                                </iframe>
+                            </div>
+                            <div style="margin-top: 1rem; padding: 1rem; background: #f8f9ff; border-radius: 8px; border-left: 4px solid #667eea;">
+                                <p style="margin: 0; color: #667eea; font-size: 0.9rem;">
+                                    📺 Watch the complete video to automatically mark this lesson as completed.
+                                </p>
+                            </div>
+                        `;
+                        break;
+                    case 'text':
+                        contentHTML += `<div style="line-height: 1.6; margin: 2rem 0;">${lesson.content}</div>`;
+                        break;
+                    case 'document':
+                        contentHTML += `
+                            <div style="margin: 2rem 0;">
+                                <a href="${lesson.content}" target="_blank" class="btn btn-outline">📄 View Document</a>
+                            </div>
+                        `;
+                        break;
+                    default:
+                        contentHTML += `<div style="margin: 2rem 0;">${lesson.content}</div>`;
+                }
+            }
+
+            // Add lesson resources if available
+            if (lesson.resources && lesson.resources.length > 0) {
+                contentHTML += `
+                    <div style="margin-bottom: 2rem;">
+                        <h4>Lesson Resources</h4>
+                        <div style="display: grid; gap: 0.5rem;">
+                            ${lesson.resources.map(resource => `
+                                <a href="${resource.url}" target="_blank" class="btn btn-outline" style="text-align: left;">
+                                    📎 ${resource.name} ${resource.size ? `(${resource.size})` : ''}
+                                </a>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Check if lesson has an exam and if it's completed
+            const isCompleted = isLessonCompleted(currentLesson.moduleIndex, currentLesson.lessonIndex);
+            
+            // Only show exam section if lesson actually has an exam configured and enabled
+            const hasRealExam = lesson.examination && 
+                               lesson.examination.isEnabled && 
+                               lesson.examination.questions && 
+                               lesson.examination.questions.length > 0;
+            
+            // Debug logging for exam display
+            console.log(`Displaying lesson content for ${lesson.title}:`, {
+                hasExamination: !!lesson.examination,
+                isEnabled: lesson.examination?.isEnabled,
+                hasQuestions: lesson.examination?.questions?.length > 0,
+                questionsCount: lesson.examination?.questions?.length || 0,
+                hasRealExam: hasRealExam,
+                isCompleted: isCompleted
+            });
+            
+            if (hasRealExam && !isCompleted) {
+                contentHTML += `
+                    <div style="border-top: 1px solid #e1e5e9; padding-top: 2rem; margin-top: 2rem;">
+                        <h3 style="color: #667eea; margin-bottom: 1rem;">📝 Lesson Quiz</h3>
+                        <p style="color: #666; margin-bottom: 1.5rem;">
+                            Complete this quiz to finish the lesson and unlock the next content.
+                        </p>
+                        <div style="background: #f8f9ff; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.9rem;">
+                                <div><strong>Questions:</strong> ${lesson.examination.questions.length}</div>
+                                <div><strong>Time Limit:</strong> ${lesson.examination.timeLimit || 10} minutes</div>
+                                <div><strong>Passing Score:</strong> ${lesson.examination.passingScore || 70}%</div>
+                            </div>
+                        </div>
+                        <button onclick="startExam()" class="btn btn-primary">Start Quiz</button>
+                    </div>
+                `;
+            } else if (hasRealExam && isCompleted) {
+                contentHTML += `
+                    <div style="border-top: 1px solid #e1e5e9; padding-top: 2rem; margin-top: 2rem;">
+                        <div style="text-align: center; padding: 2rem; background: #d4edda; border-radius: 8px; color: #155724;">
+                            <div style="font-size: 2rem; margin-bottom: 1rem;">✅</div>
+                            <h3>Lesson Completed!</h3>
+                            <p>You have successfully completed this lesson and its quiz.</p>
+                            <button onclick="continueToNextLesson()" class="btn btn-primary" style="margin-top: 1rem;">
+                                Continue to Next Lesson ▶️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (!hasRealExam) {
+                // For lessons without exams, show completion button
+                if (!isCompleted) {
+                    contentHTML += `
+                        <div style="border-top: 1px solid #e1e5e9; padding-top: 2rem; margin-top: 2rem; text-align: center;">
+                            <button onclick="markLessonComplete()" class="btn btn-primary">
+                                Mark as Complete ✓
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    contentHTML += `
+                        <div style="border-top: 1px solid #e1e5e9; padding-top: 2rem; margin-top: 2rem;">
+                            <div style="text-align: center; padding: 2rem; background: #d4edda; border-radius: 8px; color: #155724;">
+                                <div style="font-size: 2rem; margin-bottom: 1rem;">✅</div>
+                                <h3>Lesson Completed!</h3>
+                                <button onclick="continueToNextLesson()" class="btn btn-primary" style="margin-top: 1rem;">
+                                    Continue to Next Lesson ▶️
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            contentHTML += '</div>';
+            container.innerHTML = contentHTML;
+        }
+
+        // Start examination
+        async function startExam() {
+            if (!currentLesson) return;
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(
+                    `/api/courses/${currentCourse._id}/modules/${currentLesson.moduleIndex}/lessons/${currentLesson.lessonIndex}/exam`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (response.status === 404) {
+                    showAlert('No exam is available for this lesson. The instructor has not created an exam yet.', 'info');
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Failed to load exam');
+                }
+
+                const examData = await response.json();
+                
+                // Set exam state
+                examInProgress = true;
+                currentExamData = {
+                    ...examData,
+                    moduleIndex: currentLesson.moduleIndex,
+                    lessonIndex: currentLesson.lessonIndex
+                };
+                
+                // Refresh module display to show exam in progress
+                displayCourseModules();
+                
+                displayExam(currentExamData);
+
+            } catch (error) {
+                console.error('Error loading exam:', error);
+                showAlert('Failed to load examination. Please try again later.', 'error');
+            }
+        }
+
+        // Display examination
+        function displayExam(examData) {
+            const container = document.getElementById('lessonContent');
+            
+            // Start timer only if not already running (for resume functionality)
+            if (!examTimer) {
+                examTimeRemaining = examData.timeLimit * 60; // Convert to seconds
+                startExamTimer();
+            }
+
+            const examHTML = `
+                <div class="lesson-content">
+                    <div class="exam-container">
+                        <h2 style="margin-bottom: 1rem; color: #333;">${examData.title}</h2>
+                        <p style="color: #666; margin-bottom: 2rem;">${examData.description}</p>
+                        
+                        <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #ffc107;">
+                            <strong>Important:</strong> You have ${examData.timeLimit} minutes to complete this exam. 
+                            Passing score is ${examData.passingScore}%.
+                        </div>
+
+                        <form id="examForm">
+                            ${examData.questions.map((question, index) => `
+                                <div class="question-item">
+                                    <h4 style="margin-bottom: 1rem;">Question ${index + 1}</h4>
+                                    <p style="margin-bottom: 1rem;">${question.question}</p>
+                                    
+                                    ${question.type === 'multiple-choice' ? `
+                                        <div class="question-options">
+                                            ${question.options.map((option, optionIndex) => `
+                                                <div class="option-item">
+                                                    <label>
+                                                        <input type="radio" name="question_${index}" value="${option}" required>
+                                                        ${option}
+                                                    </label>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    ` : question.type === 'true-false' ? `
+                                        <div class="question-options">
+                                            <div class="option-item">
+                                                <label>
+                                                    <input type="radio" name="question_${index}" value="True" required>
+                                                    True
+                                                </label>
+                                            </div>
+                                            <div class="option-item">
+                                                <label>
+                                                    <input type="radio" name="question_${index}" value="False" required>
+                                                    False
+                                                </label>
+                                            </div>
+                                        </div>
+                                    ` : `
+                                        <div class="question-options">
+                                            <textarea name="question_${index}" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #e1e5e9; border-radius: 4px;" required></textarea>
+                                        </div>
+                                    `}
+                                </div>
+                            `).join('')}
+                            
+                            <div style="text-align: center; margin-top: 2rem;">
+                                <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem;">Submit Examination</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = examHTML;
+
+            // Handle form submission
+            document.getElementById('examForm').addEventListener('submit', submitExam);
+        }
+
+        // Start exam timer
+        function startExamTimer() {
+            document.getElementById('examTimer').style.display = 'block';
+            
+            examTimer = setInterval(() => {
+                examTimeRemaining--;
+                
+                const minutes = Math.floor(examTimeRemaining / 60);
+                const seconds = examTimeRemaining % 60;
+                
+                document.getElementById('timerDisplay').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (examTimeRemaining <= 0) {
+                    clearInterval(examTimer);
+                    document.getElementById('examTimer').style.display = 'none';
+                    showAlert('Time is up! Submitting exam automatically.', 'warning');
+                    document.getElementById('examForm').dispatchEvent(new Event('submit'));
+                }
+            }, 1000);
+        }
+
+        // Submit examination
+        async function submitExam(event) {
+            event.preventDefault();
+            
+            if (examTimer) {
+                clearInterval(examTimer);
+                document.getElementById('examTimer').style.display = 'none';
+            }
+
+            const formData = new FormData(event.target);
+            const answers = [];
+            
+            // Collect answers
+            const questions = currentLesson.lesson.examination.questions;
+            for (let i = 0; i < questions.length; i++) {
+                answers.push(formData.get(`question_${i}`) || '');
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(
+                    `/api/courses/${currentCourse._id}/modules/${currentLesson.moduleIndex}/lessons/${currentLesson.lessonIndex}/exam`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ answers })
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit exam');
+                }
+
+                const result = await response.json();
+                
+                // Clear exam state since exam is completed
+                clearExamState();
+                
+                displayExamResults(result);
+
+                // If exam was passed, refresh course data to update progress
+                if (result.passed) {
+                    await loadCourseContent();
+                    displayCourseModules();
+                    displayCourseInfo();
+                }
+
+            } catch (error) {
+                console.error('Error submitting exam:', error);
+                showAlert('Failed to submit examination', 'error');
+            }
+        }
+
+        // Display exam results
+        function displayExamResults(result) {
+            const container = document.getElementById('lessonContent');
+            
+            const resultsHTML = `
+                <div class="lesson-content">
+                    <div class="exam-results">
+                        <h2 style="text-align: center; margin-bottom: 2rem; color: ${result.passed ? '#28a745' : '#dc3545'};">
+                            ${result.passed ? '🎉 Congratulations!' : '📝 Keep Learning'}
+                        </h2>
+                        
+                        <div style="text-align: center; margin-bottom: 2rem;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem; color: ${result.passed ? '#28a745' : '#dc3545'};">
+                                ${result.score}%
+                            </div>
+                            <p style="font-size: 1.2rem; margin-bottom: 1rem;">
+                                ${result.message}
+                            </p>
+                            <p style="color: #666;">
+                                Passing score: ${result.passingScore}%
+                            </p>
+                        </div>
+
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="margin-bottom: 1rem;">Detailed Results</h3>
+                            ${result.results.map((item, index) => `
+                                <div class="result-item ${item.isCorrect ? 'result-correct' : 'result-incorrect'}">
+                                    <h4 style="margin-bottom: 0.5rem;">Question ${index + 1}</h4>
+                                    <p style="margin-bottom: 0.5rem;"><strong>Question:</strong> ${item.question}</p>
+                                    <p style="margin-bottom: 0.5rem;"><strong>Your Answer:</strong> ${item.userAnswer}</p>
+                                    <p style="margin-bottom: 0.5rem;"><strong>Correct Answer:</strong> ${item.correctAnswer}</p>
+                                    ${item.explanation ? `<p style="margin-bottom: 0;"><strong>Explanation:</strong> ${item.explanation}</p>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div style="text-align: center;">
+                            ${result.passed ? 
+                                `<button onclick="continueToNextLesson()" class="btn btn-primary">Continue Learning</button>` :
+                                `<button onclick="startExam()" class="btn btn-primary">Retake Exam</button>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = resultsHTML;
+
+            // If passed, move to next lesson automatically after showing results
+            if (result.passed) {
+                setTimeout(() => {
+                    continueToNextLesson();
+                }, 3000); // Give time to see the results
+            }
+        }
+
+        // Final Exam Functions
+        async function startFinalExam() {
+            if (!currentCourse.finalExam || !currentCourse.finalExam.isEnabled) {
+                showAlert('No final exam available for this course', 'error');
+                return;
+            }
+
+            const container = document.getElementById('lessonContent');
+            const finalExam = currentCourse.finalExam;
+            
+            // Check attempts if limited
+            const attemptsTaken = enrollment.progress.finalExamAttempts || 0;
+            const maxAttempts = finalExam.maxAttempts || 3;
+            
+            if (attemptsTaken >= maxAttempts) {
+                showAlert(`You have reached the maximum number of attempts (${maxAttempts}) for this exam.`, 'error');
+                return;
+            }
+
+            const examHTML = `
+                <div class="exam-container">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; text-align: center;">
+                        <h2 style="margin-bottom: 1rem; color: white;">🎓 ${finalExam.title || 'Final Course Examination'}</h2>
+                        <p style="margin-bottom: 1rem; opacity: 0.9;">${finalExam.description || 'This is the final examination for the course.'}</p>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.9rem; margin-top: 2rem;">
+                            <div><strong>Questions:</strong> ${finalExam.questions.length}</div>
+                            <div><strong>Time Limit:</strong> ${finalExam.timeLimit} minutes</div>
+                            <div><strong>Passing Score:</strong> ${finalExam.passingScore}%</div>
+                            <div><strong>Attempts Left:</strong> ${maxAttempts - attemptsTaken}</div>
+                        </div>
+                    </div>
+
+                    <div id="finalExamTimer" style="display: none; position: fixed; top: 20px; right: 20px; background: #dc3545; color: white; padding: 1rem; border-radius: 8px; font-weight: bold; z-index: 1000;">
+                        Time Remaining: <span id="finalTimerDisplay">00:00</span>
+                    </div>
+
+                    <form id="finalExamForm" onsubmit="submitFinalExam(event)">
+                        ${finalExam.questions.map((question, index) => `
+                            <div class="question-container" style="background: white; border: 1px solid #e1e5e9; border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
+                                <h4 style="margin-bottom: 1rem; color: #333;">Question ${index + 1}</h4>
+                                <p style="margin-bottom: 1.5rem; color: #555; line-height: 1.6;">${question.question}</p>
+                                
+                                ${question.type === 'multiple-choice' ? `
+                                    <div style="space-y: 0.5rem;">
+                                        ${question.options.map((option, optionIndex) => `
+                                            <label style="display: flex; align-items: center; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; margin-bottom: 0.5rem; cursor: pointer;">
+                                                <input type="radio" name="finalQuestion_${index}" value="${optionIndex}" style="margin-right: 1rem;" required>
+                                                <span>${option}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                ` : question.type === 'true-false' ? `
+                                    <div style="space-y: 0.5rem;">
+                                        <label style="display: flex; align-items: center; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; margin-bottom: 0.5rem; cursor: pointer;">
+                                            <input type="radio" name="finalQuestion_${index}" value="True" style="margin-right: 1rem;" required>
+                                            <span>True</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; margin-bottom: 0.5rem; cursor: pointer;">
+                                            <input type="radio" name="finalQuestion_${index}" value="False" style="margin-right: 1rem;" required>
+                                            <span>False</span>
+                                        </label>
+                                    </div>
+                                ` : `
+                                    <textarea name="finalQuestion_${index}" class="form-control" rows="3" placeholder="Enter your answer here..." required></textarea>
+                                `}
+                            </div>
+                        `).join('')}
+                        
+                        <div style="text-align: center; margin-top: 3rem;">
+                            <button type="submit" class="btn btn-primary" style="padding: 1rem 3rem; font-size: 1.1rem;">
+                                🎯 Submit Final Exam
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            container.innerHTML = examHTML;
+            
+            // Start timer
+            startFinalExamTimer(finalExam.timeLimit);
+        }
+
+        function startFinalExamTimer(timeLimit) {
+            finalExamTimeRemaining = timeLimit * 60; // Convert to seconds
+            document.getElementById('finalExamTimer').style.display = 'block';
+            
+            finalExamTimer = setInterval(() => {
+                finalExamTimeRemaining--;
+                
+                const minutes = Math.floor(finalExamTimeRemaining / 60);
+                const seconds = finalExamTimeRemaining % 60;
+                
+                document.getElementById('finalTimerDisplay').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (finalExamTimeRemaining <= 0) {
+                    clearInterval(finalExamTimer);
+                    document.getElementById('finalExamTimer').style.display = 'none';
+                    showAlert('Time is up! Submitting final exam automatically.', 'warning');
+                    document.getElementById('finalExamForm').dispatchEvent(new Event('submit'));
+                }
+            }, 1000);
+        }
+
+        async function submitFinalExam(event) {
+            event.preventDefault();
+            
+            if (finalExamTimer) {
+                clearInterval(finalExamTimer);
+                document.getElementById('finalExamTimer').style.display = 'none';
+            }
+
+            const formData = new FormData(event.target);
+            const answers = [];
+            
+            // Collect answers
+            const questions = currentCourse.finalExam.questions;
+            for (let i = 0; i < questions.length; i++) {
+                answers.push(formData.get(`finalQuestion_${i}`) || '');
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/courses/${currentCourse._id}/final-exam`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ answers })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit final exam');
+                }
+
+                const result = await response.json();
+                displayFinalExamResults(result);
+
+                // Refresh course data to update progress
+                await loadCourseContent();
+                displayCourseInfo();
+
+            } catch (error) {
+                console.error('Error submitting final exam:', error);
+                showAlert('Failed to submit final exam. Please try again.', 'error');
+            }
+        }
+
+        function displayFinalExamResults(result) {
+            const container = document.getElementById('lessonContent');
+            
+            const resultClass = result.passed ? 'result-passed' : 'result-failed';
+            const resultIcon = result.passed ? '🎉' : '😔';
+            const resultMessage = result.passed ? 'Congratulations!' : 'Not Passed';
+            
+            const resultsHTML = `
+                <div class="exam-results">
+                    <div style="background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;">
+                        <div class="${resultClass}" style="padding: 3rem; text-align: center; background: ${result.passed ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)' : 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'}; color: white;">
+                            <div style="font-size: 4rem; margin-bottom: 1rem;">${resultIcon}</div>
+                            <h2 style="margin-bottom: 1rem; color: white;">${resultMessage}</h2>
+                            <div style="font-size: 3rem; font-weight: bold; margin-bottom: 1rem;">${result.score}%</div>
+                            <p style="opacity: 0.9; font-size: 1.1rem;">
+                                ${result.passed ? 
+                                    `You passed the final exam! Score: ${result.score}%` : 
+                                    `You need ${currentCourse.finalExam.passingScore}% to pass. Your score: ${result.score}%`
+                                }
+                            </p>
+                        </div>
+
+                        <div style="padding: 2rem;">
+                            <h3 style="margin-bottom: 1.5rem; color: #333;">📊 Detailed Results</h3>
+                            ${result.results.map((item, index) => `
+                                <div class="result-item ${item.isCorrect ? 'result-correct' : 'result-incorrect'}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 8px; border: 1px solid ${item.isCorrect ? '#28a745' : '#dc3545'}; background: ${item.isCorrect ? '#d4edda' : '#f8d7da'};">
+                                    <h4 style="margin-bottom: 0.5rem; color: ${item.isCorrect ? '#155724' : '#721c24'};">Question ${index + 1}</h4>
+                                    <p style="margin-bottom: 0.5rem;"><strong>Question:</strong> ${item.question}</p>
+                                    <p style="margin-bottom: 0.5rem;"><strong>Your Answer:</strong> ${item.userAnswer}</p>
+                                    <p style="margin-bottom: 0.5rem;"><strong>Correct Answer:</strong> ${item.correctAnswer}</p>
+                                    ${item.explanation ? `<p style="margin-bottom: 0;"><strong>Explanation:</strong> ${item.explanation}</p>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div style="text-align: center; padding: 2rem;">
+                            ${result.passed ? 
+                                `<button onclick="generateCertificate()" class="btn btn-success" style="padding: 1rem 2rem; font-size: 1.1rem;">📜 Get Your Certificate</button>` :
+                                `<button onclick="startFinalExam()" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">🔄 Retake Final Exam</button>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = resultsHTML;
+        }
+
+        async function generateCertificate() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/courses/${currentCourse._id}/certificate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate certificate');
+                }
+
+                const result = await response.json();
+                showAlert('Certificate generated successfully! 🎉', 'success');
+                
+                // Update course info to show certificate ready
+                await loadCourseContent();
+                displayCourseInfo();
+
+            } catch (error) {
+                console.error('Error generating certificate:', error);
+                showAlert('Failed to generate certificate. Please try again.', 'error');
+            }
+        }
+
+        async function downloadCertificate() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/courses/${currentCourse._id}/certificate/download`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to download certificate');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentCourse.name}-Certificate.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                showAlert('Certificate downloaded successfully! 📥', 'success');
+
+            } catch (error) {
+                console.error('Error downloading certificate:', error);
+                showAlert('Failed to download certificate. Please try again.', 'error');
+            }
+        }
+
+        // Mark lesson as complete (for lessons without exams)
+        async function markLessonComplete() {
+            if (!currentLesson || !currentCourse) {
+                showAlert('No lesson selected', 'error');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                console.log('Marking lesson as complete:', {
+                    courseId: currentCourse._id,
+                    courseName: currentCourse.name,
+                    moduleIndex: currentLesson.moduleIndex,
+                    lessonIndex: currentLesson.lessonIndex
+                });
+                
+                const response = await fetch(
+                    `/api/courses/${currentCourse._id}/modules/${currentLesson.moduleIndex}/lessons/${currentLesson.lessonIndex}/complete`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Server error:', errorData);
+                    throw new Error(errorData.error || 'Failed to mark lesson as complete');
+                }
+
+                const result = await response.json();
+                console.log('Lesson completion result:', result);
+                
+                showAlert('Lesson marked as complete! 🎉', 'success');
+                
+                // Update the local enrollment progress immediately with comprehensive data
+                if (result.progress) {
+                    if (!enrollment.progress) {
+                        enrollment.progress = {};
+                    }
+                    enrollment.progress.overallProgress = result.progress.overallProgress || 0;
+                    enrollment.progress.completedLessons = result.progress.completedLessons || 0;
+                    enrollment.progress.totalLessons = result.progress.totalLessons || 0;
+                    enrollment.progress.completedModules = result.progress.completedModules || 0;
+                    enrollment.progress.totalModules = result.progress.totalModules || 0;
+                    
+                    console.log('Updated progress to:', enrollment.progress.overallProgress + '%');
+                    console.log('Lessons completed:', enrollment.progress.completedLessons + '/' + enrollment.progress.totalLessons);
+                }
+                
+                // Update enrollment status if provided
+                if (result.enrollment) {
+                    enrollment.status = result.enrollment.status;
+                    enrollment.progress = result.enrollment.progress;
+                }
+                
+                // Refresh the course content and display to show latest progress
+                await loadCourseContent();
+                
+                // Force update all progress displays
+                displayCourseModules();
+                displayCourseInfo();
+                
+                // Refresh the current lesson content to show completion status
+                if (currentLesson && currentLesson.lesson) {
+                    displayLessonContent(currentLesson.lesson);
+                }
+
+                // Also refresh progress across all user courses
+                try {
+                    const refreshResponse = await fetch('/api/refresh-progress', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (refreshResponse.ok) {
+                        const refreshResult = await refreshResponse.json();
+                        console.log('Progress refreshed for all courses:', refreshResult);
+                    }
+                } catch (refreshError) {
+                    console.log('Progress refresh completed, but global refresh failed:', refreshError);
+                }
+
+                // Show Continue Learning option after a short delay
+                setTimeout(() => {
+                    const continueButton = document.createElement('div');
+                    continueButton.style.cssText = `
+                        position: fixed;
+                        bottom: 20px;
+                        right: 20px;
+                        background: #667eea;
+                        color: white;
+                        padding: 1rem 1.5rem;
+                        border-radius: 50px;
+                        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                        cursor: pointer;
+                        z-index: 1000;
+                        font-weight: bold;
+                        transition: all 0.3s ease;
+                    `;
+                    continueButton.innerHTML = '▶️ Continue Learning';
+                    continueButton.onclick = () => {
+                        continueButton.remove();
+                        continueToNextLesson();
+                    };
+                    
+                    // Add hover effect
+                    continueButton.onmouseover = () => {
+                        continueButton.style.transform = 'scale(1.05)';
+                        continueButton.style.background = '#5a67d8';
+                    };
+                    continueButton.onmouseout = () => {
+                        continueButton.style.transform = 'scale(1)';
+                        continueButton.style.background = '#667eea';
+                    };
+                    
+                    document.body.appendChild(continueButton);
+                    
+                    // Auto-remove after 10 seconds
+                    setTimeout(() => {
+                        if (continueButton.parentNode) {
+                            continueButton.remove();
+                        }
+                    }, 10000);
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error marking lesson as complete:', error);
+                showAlert('Failed to mark lesson as complete. Please try again.', 'error');
+            }
+        }
+
+        // Show alert function
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                z-index: 10000;
+                max-width: 400px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                transition: all 0.3s ease;
+            `;
+            
+            switch (type) {
+                case 'success':
+                    alertDiv.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                    break;
+                case 'error':
+                    alertDiv.style.background = 'linear-gradient(135deg, #dc3545, #c82333)';
+                    break;
+                case 'warning':
+                    alertDiv.style.background = 'linear-gradient(135deg, #ffc107, #fd7e14)';
+                    break;
+                default:
+                    alertDiv.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+            }
+            
+            alertDiv.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; margin-left: 1rem;">×</button>
+                </div>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.style.transform = 'translateX(100%)';
+                    setTimeout(() => alertDiv.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        // Initialize page when loaded
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('Course learning page loaded, initializing...');
+            
+            // Initialize navbar
+            loadNavbar();
+            
+            // Load YouTube API
+            loadYouTubeAPI();
+            
+            // Check authentication
+            if (!checkAuth()) {
+                return;
+            }
+            
+            // Load course content
+            try {
+                await loadCourseContent();
+                console.log('Course content loaded successfully');
+            } catch (error) {
+                console.error('Failed to load course content:', error);
+                showAlert('Failed to load course content. Please refresh the page.', 'error');
+            }
+        });
+
+        // Also initialize if the page is already loaded
+        if (document.readyState === 'loading') {
+            // Do nothing, DOMContentLoaded will fire
+        } else {
+            // DOM already loaded, initialize immediately
+            setTimeout(async () => {
+                console.log('Course learning page already loaded, initializing...');
+                
+                // Initialize navbar
+                loadNavbar();
+                
+                // Load YouTube API
+                loadYouTubeAPI();
+                
+                // Check authentication
+                if (!checkAuth()) {
+                    return;
+                }
+                
+                // Load course content
+                try {
+                    await loadCourseContent();
+                    console.log('Course content loaded successfully');
+                } catch (error) {
+                    console.error('Failed to load course content:', error);
+                    showAlert('Failed to load course content. Please refresh the page.', 'error');
+                }
+            }, 100);
+        }
+    </script>
+
+    <script src="navbar.js"></script>
+</body>
+</html>

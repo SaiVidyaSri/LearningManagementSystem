@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Certificates - LearNova</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navbar.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <style>
+        body {
+            margin: 0;
+            background: #f8f9fa;
+        }
+
+        .certificates-container {
+            max-width: 1200px;
+            margin: 80px auto 0; /* Top margin for fixed navbar */
+            padding: 2rem;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 0;
+            margin: -2rem -2rem 3rem -2rem;
+            border-radius: 0 0 20px 20px;
+            text-align: center;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .page-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .certificates-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 1px solid #e1e5e9;
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 0;
+        }
+
+        .stat-label {
+            color: #666;
+            margin: 0.5rem 0 0 0;
+            font-size: 0.9rem;
+        }
+
+        .certificates-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex: 1;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filter-select {
+            padding: 0.8rem 1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .certificates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .certificate-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid #e1e5e9;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .certificate-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+        }
+
+        .certificate-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .certificate-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .certificate-icon {
+            font-size: 3rem;
+            margin-right: 1rem;
+        }
+
+        .certificate-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 0.3rem 0;
+            line-height: 1.3;
+        }
+
+        .certificate-course {
+            color: #667eea;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .certificate-details {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .detail-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .certificate-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #667eea;
+            border: 1px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .empty-message {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .empty-action {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .empty-action:hover {
+            background: #5a67d8;
+        }
+
+        @media (max-width: 768px) {
+            .certificates-container {
+                padding: 1rem;
+                margin-top: 80px;
+            }
+
+            .page-header {
+                padding: 2rem 0;
+                margin: -1rem -1rem 2rem -1rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .certificates-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .certificates-controls {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .search-filter {
+                flex-direction: column;
+            }
+
+            .certificates-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .certificate-card {
+                padding: 1.5rem;
+            }
+
+            .certificate-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation will be inserted here -->
+    <div id="navbar-container"></div>
+
+    <div class="certificates-container">
+        <div class="page-header">
+            <h1 class="page-title">🏆 My Certificates</h1>
+            <p class="page-subtitle">Your achievements and completed courses</p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="certificates-stats">
+            <div class="stat-card">
+                <div class="stat-icon">📜</div>
+                <div class="stat-number" id="totalCertificates">0</div>
+                <div class="stat-label">Total Certificates</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-number" id="completedCourses">0</div>
+                <div class="stat-label">Courses Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🏅</div>
+                <div class="stat-number" id="skillsBadges">0</div>
+                <div class="stat-label">Skills Earned</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-number" id="overallProgress">0%</div>
+                <div class="stat-label">Overall Progress</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="certificates-controls">
+            <div class="search-filter">
+                <input type="text" 
+                       class="search-input" 
+                       id="searchInput" 
+                       placeholder="🔍 Search certificates...">
+                <select class="filter-select" id="filterSelect">
+                    <option value="all">All Certificates</option>
+                    <option value="recent">Recent</option>
+                    <option value="programming">Programming</option>
+                    <option value="design">Design</option>
+                    <option value="business">Business</option>
+                    <option value="data">Data Science</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading your certificates...</p>
+        </div>
+
+        <!-- Certificates Grid -->
+        <div id="certificatesGrid" class="certificates-grid" style="display: none;"></div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-icon">🎓</div>
+            <h2 class="empty-title">No Certificates Yet</h2>
+            <p class="empty-message">Complete your first course to earn your first certificate!</p>
+            <a href="courses.html" class="empty-action">Browse Courses</a>
+        </div>
+    </div>
+
+    <script src="navbar.js"></script>
+    <script>
+        let userCertificates = [];
+        let filteredCertificates = [];
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎓 Certificates page loading...');
+            
+            // Initialize navbar
+            if (typeof loadNavbar === 'function') {
+                loadNavbar();
+            } else {
+                console.log('⚠️ navbar.js not loaded, loading manually...');
+                setTimeout(() => {
+                    if (typeof loadNavbar === 'function') {
+                        loadNavbar();
+                    }
+                }, 100);
+            }
+            
+            // Check authentication
+            checkAuth();
+            
+            // Load certificates
+            loadCertificates();
+            
+            // Setup search and filter
+            setupSearchAndFilter();
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            if (!token || !user) {
+                // For development, allow demo access
+                console.log('No authentication found, using demo mode');
+                currentUser = { firstName: 'Demo', lastName: 'User' };
+                return true;
+            }
+            
+            try {
+                currentUser = JSON.parse(user);
+                console.log('✅ User authenticated:', currentUser.firstName);
+            } catch (error) {
+                console.log('⚠️ Error parsing user data, using demo mode');
+                currentUser = { firstName: 'Demo', lastName: 'User' };
+            }
+            return true;
+        }
+
+        function getGradeFromScore(score) {
+            if (score >= 95) return 'A+';
+            if (score >= 90) return 'A';
+            if (score >= 85) return 'A-';
+            if (score >= 80) return 'B+';
+            if (score >= 75) return 'B';
+            if (score >= 70) return 'B-';
+            if (score >= 65) return 'C+';
+            if (score >= 60) return 'C';
+            return 'F';
+        }
+
+        function getStudentName() {
+            // Try multiple sources for student name
+            
+            // 1. Check if certificate has student name (from API)
+            if (userCertificates.length > 0 && userCertificates[0].studentName) {
+                return userCertificates[0].studentName;
+            }
+            
+            // 2. Check current user from localStorage
+            if (currentUser) {
+                if (currentUser.fullName) {
+                    return currentUser.fullName;
+                }
+                if (currentUser.firstName && currentUser.lastName) {
+                    return `${currentUser.firstName} ${currentUser.lastName}`;
+                }
+                if (currentUser.firstName) {
+                    return currentUser.firstName;
+                }
+                if (currentUser.name) {
+                    return currentUser.name;
+                }
+            }
+            
+            // 3. Check localStorage directly
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    if (user.fullName) return user.fullName;
+                    if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
+                    if (user.firstName) return user.firstName;
+                    if (user.name) return user.name;
+                } catch (e) {
+                    console.log('Error parsing user data:', e);
+                }
+            }
+            
+            // 4. Fallback to demo name
+            return 'Demo Student';
+        }
+
+        async function loadCertificates() {
+            console.log('🎓 Loading certificates...');
+            
+            try {
+                const token = localStorage.getItem('token');
+                
+                // Try to fetch real certificates from the API
+                if (token) {
+                    const response = await fetch('/api/student/certificates', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('📊 Raw API response:', data);
+                        
+                        // API returns array directly, not wrapped in data.certificates
+                        userCertificates = Array.isArray(data) ? data : (data.certificates || []);
+                        console.log('📋 Parsed certificates:', userCertificates);
+                        
+                        // Transform API data to match expected format
+                        userCertificates = userCertificates.map(cert => {
+                            console.log('🔄 Transforming certificate:', cert);
+                            const transformed = {
+                                _id: cert._id,
+                                courseName: cert.courseName,
+                                courseId: cert.courseId,
+                                completionDate: cert.completionDate || cert.issuedDate,
+                                grade: getGradeFromScore(cert.finalScore),
+                                instructor: cert.instructorName || (cert.instructor && cert.instructor.fullName) || 'Unknown Instructor',
+                                duration: `${cert.courseDuration} weeks` + (cert.totalHours ? ` (${cert.totalHours} hours)` : ''),
+                                skills: cert.skills || [],
+                                certificateId: cert.certificateId,
+                                finalScore: cert.finalScore || 0,
+                                studentName: cert.studentName || null // Include student name from certificate
+                            };
+                            console.log('✅ Transformed:', transformed);
+                            return transformed;
+                        });
+                        
+                        console.log('✅ Real certificates loaded:', userCertificates.length);
+                    } else {
+                        console.log('⚠️ API response not ok:', response.status, response.statusText);
+                        userCertificates = getDemoCertificates();
+                    }
+                } else {
+                    console.log('⚠️ No token found, using demo data');
+                    userCertificates = getDemoCertificates();
+                }
+            } catch (error) {
+                console.log('⚠️ Error loading certificates:', error);
+                console.log('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+                userCertificates = getDemoCertificates();
+            }
+            
+            displayCertificates();
+            updateStatistics();
+        }
+
+        function getDemoCertificates() {
+            return [
+                {
+                    _id: '1',
+                    courseName: 'Complete JavaScript Mastery',
+                    courseId: 'js-101',
+                    completionDate: '2024-12-15',
+                    grade: 'A+',
+                    instructor: 'Prof. John Smith',
+                    duration: '6 weeks (40 hours)',
+                    skills: ['JavaScript', 'ES6+', 'DOM Manipulation', 'API Integration'],
+                    certificateId: 'CERT-JS-2024-001',
+                    finalScore: 96,
+                    studentName: 'Alex Johnson'
+                },
+                {
+                    _id: '2',
+                    courseName: 'React Development Bootcamp',
+                    courseId: 'react-201',
+                    completionDate: '2024-11-28',
+                    grade: 'A',
+                    instructor: 'Dr. Sarah Johnson',
+                    duration: '5 weeks (35 hours)',
+                    skills: ['React', 'Redux', 'Component Design', 'Testing'],
+                    certificateId: 'CERT-REACT-2024-002',
+                    finalScore: 92,
+                    studentName: 'Alex Johnson'
+                },
+                {
+                    _id: '3',
+                    courseName: 'Data Science Fundamentals',
+                    courseId: 'ds-101',
+                    completionDate: '2024-10-10',
+                    grade: 'B+',
+                    instructor: 'Dr. Michael Chen',
+                    duration: '8 weeks (50 hours)',
+                    skills: ['Python', 'Pandas', 'Machine Learning', 'Data Visualization'],
+                    certificateId: 'CERT-DS-2024-003',
+                    finalScore: 87,
+                    studentName: 'Alex Johnson'
+                }
+            ];
+        }
+
+        function displayCertificates() {
+            console.log('📋 Displaying certificates...');
+            const loadingState = document.getElementById('loadingState');
+            const certificatesGrid = document.getElementById('certificatesGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            // Hide loading
+            if (loadingState) loadingState.style.display = 'none';
+            
+            if (userCertificates.length === 0) {
+                if (emptyState) emptyState.style.display = 'block';
+                if (certificatesGrid) certificatesGrid.style.display = 'none';
+                return;
+            }
+            
+            // Show certificates grid
+            if (emptyState) emptyState.style.display = 'none';
+            if (certificatesGrid) certificatesGrid.style.display = 'grid';
+            
+            // Apply current filter
+            applyFilter();
+        }
+
+        function renderCertificates(certificates) {
+            const certificatesGrid = document.getElementById('certificatesGrid');
+            if (!certificatesGrid) return;
+            
+            if (certificates.length === 0) {
+                certificatesGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #666;">
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">🔍</div>
+                        <h3>No certificates found</h3>
+                        <p>Try adjusting your search or filter criteria.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            certificatesGrid.innerHTML = certificates.map(cert => `
+                <div class="certificate-card">
+                    <div class="certificate-header">
+                        <div class="certificate-icon">🎓</div>
+                        <div>
+                            <h3 class="certificate-title">${cert.courseName}</h3>
+                            <p class="certificate-course">Certificate ID: ${cert.certificateId}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="certificate-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Completion Date:</span>
+                            <span class="detail-value">${formatDate(cert.completionDate)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Grade:</span>
+                            <span class="detail-value">${cert.grade}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Instructor:</span>
+                            <span class="detail-value">${cert.instructor}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Duration:</span>
+                            <span class="detail-value">${cert.duration}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Skills Earned:</span>
+                            <span class="detail-value">${cert.skills.slice(0, 2).join(', ')}${cert.skills.length > 2 ? '...' : ''}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="certificate-actions">
+                        <button class="action-btn btn-primary" onclick="viewCertificate('${cert._id}')">
+                            👁️ View
+                        </button>
+                        <button class="action-btn btn-secondary" onclick="downloadCertificate('${cert._id}')">
+                            📥 Download
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStatistics() {
+            const totalCerts = userCertificates.length;
+            const completedCourses = userCertificates.length;
+            const skillsBadges = [...new Set(userCertificates.flatMap(cert => cert.skills))].length;
+            const overallProgress = totalCerts > 0 ? 100 : 0;
+            
+            const totalCertificatesEl = document.getElementById('totalCertificates');
+            const completedCoursesEl = document.getElementById('completedCourses');
+            const skillsBadgesEl = document.getElementById('skillsBadges');
+            const overallProgressEl = document.getElementById('overallProgress');
+            
+            if (totalCertificatesEl) totalCertificatesEl.textContent = totalCerts;
+            if (completedCoursesEl) completedCoursesEl.textContent = completedCourses;
+            if (skillsBadgesEl) skillsBadgesEl.textContent = skillsBadges;
+            if (overallProgressEl) overallProgressEl.textContent = `${overallProgress}%`;
+        }
+
+        function setupSearchAndFilter() {
+            const searchInput = document.getElementById('searchInput');
+            const filterSelect = document.getElementById('filterSelect');
+            
+            if (searchInput) searchInput.addEventListener('input', applyFilter);
+            if (filterSelect) filterSelect.addEventListener('change', applyFilter);
+        }
+
+        function applyFilter() {
+            const searchInput = document.getElementById('searchInput');
+            const filterSelect = document.getElementById('filterSelect');
+            
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            const filterValue = filterSelect ? filterSelect.value : 'all';
+            
+            let filtered = userCertificates;
+            
+            // Apply search filter
+            if (searchTerm) {
+                filtered = filtered.filter(cert => 
+                    cert.courseName.toLowerCase().includes(searchTerm) ||
+                    cert.instructor.toLowerCase().includes(searchTerm) ||
+                    cert.skills.some(skill => skill.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            // Apply category filter
+            if (filterValue !== 'all') {
+                const now = new Date();
+                const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+                
+                if (filterValue === 'recent') {
+                    filtered = filtered.filter(cert => new Date(cert.completionDate) >= oneMonthAgo);
+                } else {
+                    const categoryKeywords = {
+                        'programming': ['javascript', 'react', 'python', 'java', 'programming'],
+                        'design': ['design', 'ui', 'ux', 'photoshop', 'figma'],
+                        'business': ['business', 'marketing', 'management', 'leadership'],
+                        'data': ['data', 'analytics', 'machine learning', 'statistics']
+                    };
+                    
+                    const keywords = categoryKeywords[filterValue] || [];
+                    filtered = filtered.filter(cert => 
+                        keywords.some(keyword => 
+                            cert.courseName.toLowerCase().includes(keyword) ||
+                            cert.skills.some(skill => skill.toLowerCase().includes(keyword))
+                        )
+                    );
+                }
+            }
+            
+            filteredCertificates = filtered;
+            renderCertificates(filtered);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function viewCertificate(certificateId) {
+            console.log('👁️ Viewing certificate:', certificateId);
+            // Find the certificate
+            const certificate = userCertificates.find(cert => cert._id === certificateId);
+            if (!certificate) {
+                alert('Certificate not found!');
+                return;
+            }
+
+            // Get student name from multiple sources
+            const studentName = getStudentName();
+            console.log('📝 Using student name:', studentName);
+
+            // Open certificate in a new window/tab
+            const certificateWindow = window.open('', '_blank', 'width=800,height=600');
+            
+            const certificateHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Certificate - ${certificate.courseName}</title>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            margin: 40px; 
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            min-height: 100vh;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        .certificate {
+                            background: white;
+                            border: 8px solid #667eea;
+                            border-radius: 20px;
+                            padding: 60px;
+                            text-align: center;
+                            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+                            max-width: 600px;
+                            width: 100%;
+                            position: relative;
+                        }
+                        .logo {
+                            width: 80px;
+                            height: 80px;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            border-radius: 50%;
+                            margin: 0 auto 20px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 40px;
+                            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                        }
+                        .certificate-header { 
+                            font-size: 24px; 
+                            color: #667eea; 
+                            margin-bottom: 20px;
+                            font-weight: bold;
+                        }
+                        .certificate-title { 
+                            font-size: 36px; 
+                            margin: 20px 0; 
+                            color: #333;
+                            font-weight: bold;
+                        }
+                        .recipient { 
+                            font-size: 28px; 
+                            margin: 30px 0; 
+                            color: #667eea;
+                            font-style: italic;
+                        }
+                        .course-name { 
+                            font-size: 20px; 
+                            margin: 20px 0; 
+                            color: #333;
+                            font-weight: bold;
+                        }
+                        .details { 
+                            margin: 30px 0; 
+                            color: #666;
+                            line-height: 1.6;
+                        }
+                        .signatures {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-top: 50px;
+                            border-top: 1px solid #eee;
+                            padding-top: 30px;
+                        }
+                        .signature {
+                            text-align: center;
+                            flex: 1;
+                        }
+                        .signature-line {
+                            border-bottom: 1px solid #333;
+                            width: 150px;
+                            margin: 0 auto 10px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="certificate">
+                        <div class="logo">📚</div>
+                        <div class="certificate-header">🎓 CERTIFICATE OF COMPLETION 🎓</div>
+                        <div class="certificate-title">LearNova</div>
+                        <div style="font-size: 16px; margin: 20px 0;">This is to certify that</div>
+                        <div class="recipient">${studentName}</div>
+                        <div style="font-size: 16px; margin: 20px 0;">has successfully completed the course</div>
+                        <div class="course-name">${certificate.courseName}</div>
+                        <div class="details">
+                            <strong>Completion Date:</strong> ${formatDate(certificate.completionDate)}<br>
+                            <strong>Grade:</strong> ${certificate.grade}<br>
+                            <strong>Duration:</strong> ${certificate.duration}<br>
+                            <strong>Certificate ID:</strong> ${certificate.certificateId}
+                        </div>
+                        <div class="signatures">
+                            <div class="signature">
+                                <div class="signature-line"></div>
+                                <div>Instructor</div>
+                                <div><strong>${certificate.instructor}</strong></div>
+                            </div>
+                            <div class="signature">
+                                <div class="signature-line"></div>
+                                <div>Director</div>
+                                <div><strong>LearNova Academy</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            certificateWindow.document.write(certificateHTML);
+            certificateWindow.document.close();
+        }
+
+        function downloadCertificate(certificateId) {
+            console.log('📥 Downloading certificate:', certificateId);
+            // Find the certificate
+            const certificate = userCertificates.find(cert => cert._id === certificateId);
+            if (!certificate) {
+                alert('Certificate not found!');
+                return;
+            }
+
+            // Get student name from multiple sources
+            const studentName = getStudentName();
+            console.log('📝 Using student name for download:', studentName);
+
+            try {
+                // Create canvas for certificate image
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size
+                canvas.width = 800;
+                canvas.height = 600;
+                
+                // Create gradient background
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#667eea');
+                gradient.addColorStop(1, '#764ba2');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw white certificate area
+                ctx.fillStyle = 'white';
+                ctx.fillRect(50, 50, canvas.width - 100, canvas.height - 100);
+                
+                // Draw border
+                ctx.strokeStyle = '#667eea';
+                ctx.lineWidth = 8;
+                ctx.strokeRect(50, 50, canvas.width - 100, canvas.height - 100);
+                
+                // Draw LearNova logo (circular background with book emoji)
+                const logoX = canvas.width / 2;
+                const logoY = 110;
+                const logoRadius = 30;
+                
+                // Draw logo circle
+                const logoGradient = ctx.createLinearGradient(logoX - logoRadius, logoY - logoRadius, logoX + logoRadius, logoY + logoRadius);
+                logoGradient.addColorStop(0, '#667eea');
+                logoGradient.addColorStop(1, '#764ba2');
+                ctx.fillStyle = logoGradient;
+                ctx.beginPath();
+                ctx.arc(logoX, logoY, logoRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Draw book emoji in logo
+                ctx.fillStyle = 'white';
+                ctx.font = '32px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('📚', logoX, logoY);
+                
+                // Add text
+                ctx.fillStyle = '#667eea';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillText('🎓 CERTIFICATE OF COMPLETION 🎓', canvas.width / 2, 160);
+                
+                ctx.font = 'bold 32px Arial';
+                ctx.fillStyle = '#333';
+                ctx.fillText('LearNova', canvas.width / 2, 200);
+                
+                ctx.font = '16px Arial';
+                ctx.fillText('This is to certify that', canvas.width / 2, 240);
+                
+                ctx.font = 'italic 24px Arial';
+                ctx.fillStyle = '#667eea';
+                ctx.fillText(studentName, canvas.width / 2, 280);
+                
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#333';
+                ctx.fillText('has successfully completed the course', canvas.width / 2, 320);
+                
+                ctx.font = 'bold 20px Arial';
+                ctx.fillText(certificate.courseName, canvas.width / 2, 360);
+                
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#666';
+                ctx.fillText(`Completion Date: ${formatDate(certificate.completionDate)}`, canvas.width / 2, 420);
+                ctx.fillText(`Grade: ${certificate.grade}  |  Duration: ${certificate.duration}`, canvas.width / 2, 440);
+                ctx.fillText(`Certificate ID: ${certificate.certificateId}`, canvas.width / 2, 460);
+                
+                // Add signatures
+                ctx.fillStyle = '#333';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('Instructor:', 150, 520);
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(certificate.instructor, 150, 540);
+                
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText('Director:', 650, 520);
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('LearNova Academy', 650, 540);
+                
+                // Convert to blob and download
+                canvas.toBlob(function(blob) {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${certificate.courseName.replace(/[^a-z0-9]/gi, '_')}_Certificate.jpg`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    // Show success message
+                    alert('✅ Certificate downloaded successfully as JPG image!');
+                }, 'image/jpeg', 0.9);
+                
+            } catch (error) {
+                console.error('Error generating certificate:', error);
+                alert('❌ Error generating certificate. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -23,7 +23,12 @@ class ModernNavbar {
             const publicPages = ['index.html', 'login.html', 'register.html', 'about.html', 'contact.html', 'forgot-password.html', ''];
             
             if (!publicPages.includes(currentPage)) {
+                console.log('❌ Authentication required for page:', currentPage);
                 window.location.href = 'login.html';
+                return;
+            } else {
+                console.log('ℹ️ Public page accessed without auth:', currentPage);
+                // Don't render navbar for unauthenticated users on public pages
                 return;
             }
         } else {
@@ -180,10 +185,16 @@ class ModernNavbar {
             </nav>
         `;
 
-        // Insert navbar at the beginning of body or replace existing navbar
+        // Insert navbar into the navbar-container div if it exists, otherwise insert at body start
+        const navbarContainer = document.getElementById('navbar-container');
         const existingNavbar = document.querySelector('.modern-navbar');
+        
         if (existingNavbar) {
-            existingNavbar.outerHTML = navbarHTML;
+            existingNavbar.remove();
+        }
+        
+        if (navbarContainer) {
+            navbarContainer.innerHTML = navbarHTML;
         } else {
             document.body.insertAdjacentHTML('afterbegin', navbarHTML);
         }
@@ -290,3 +301,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Make navbar available globally
 window.navbar = navbar;
+
+// Legacy function for compatibility with existing pages
+function loadNavbar() {
+    console.log('loadNavbar() called');
+    if (navbar) {
+        console.log('Navbar exists, calling renderNavbar()');
+        navbar.renderNavbar();
+    } else {
+        console.log('Navbar not initialized, creating new instance');
+        // If navbar isn't initialized yet, create it
+        navbar = new ModernNavbar();
+        window.navbar = navbar;
+    }
+}
+
+// Make loadNavbar available globally
+window.loadNavbar = loadNavbar;

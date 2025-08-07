@@ -77,8 +77,13 @@ body {
 
 /* Main Content */
 .main-content {
-    padding: 2rem 0;
-    min-height: calc(100vh - 200px);
+    margin: 0 auto;
+    padding: 2rem;
+    margin-top: 80px; /* Space for fixed navbar */
+}
+.main-contentt {
+    margin-top: 20px;
+    padding: 1.2rem;
 }
 
 /* Card Styles */
