@@ -6,9 +6,10 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const multer = require('multer'); // For file uploads
 const fs = require('fs');
-const nodemon = require('nodemon'); // For development server restarts
 const nodemailer = require('nodemailer'); // For email functionality
 const crypto = require('crypto'); // For generating reset tokens
+require('dotenv').config(); // Load environment variables
+
 const User = require('./models/User');
 const Course = require('./models/Course');
 const Enrollment = require('./models/Enrollment');
@@ -17,26 +18,26 @@ const Certificate = require('./models/Certificate');
 const Query = require('./models/Query');
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 3000;
 
-// JWT Secret - In production, use environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
+// JWT Secret - Use environment variable
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here-change-in-production';
 
-// ADMIN CREDENTIALS - FIXED CREDENTIALS FOR ADMIN LOGIN
+// ADMIN CREDENTIALS - Use environment variables in production
 const ADMIN_CREDENTIALS = {
-  email: 'admin@learnova.com',
-  password: 'admin123'
+  email: process.env.ADMIN_EMAIL || 'admin@learnova.com',
+  password: process.env.ADMIN_PASSWORD || 'admin123'
 };
 
-// Email Configuration - CONFIGURED WITH YOUR GMAIL CREDENTIALS
+// Email Configuration - Use environment variables
 const EMAIL_CONFIG = {
   service: 'gmail',
   host: 'smtp.gmail.com',
   port: 587,
   secure: false,
   auth: {
-    user: 'learn.learnova@gmail.com',
-    pass: 'xtvt klvd gnna lztl'
+    user: process.env.EMAIL_USER || 'learn.learnova@gmail.com',
+    pass: process.env.EMAIL_PASS || 'xtvt klvd gnna lztl'
   }
 };
 
@@ -188,8 +189,8 @@ const upload = multer({
   }
 });
 
-// MongoDB connection with multiple fallback options
-const MONGODB_ATLAS_URI = "mongodb+srv://vidyadonthagani:vidya2004@cluster0.acdpvpq.mongodb.net/lms?retryWrites=true&w=majority&appName=Cluster0";
+// MongoDB connection with environment variable
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb+srv://vidyadonthagani:vidya2004@cluster0.acdpvpq.mongodb.net/lms?retryWrites=true&w=majority&appName=Cluster0";
 const MONGODB_LOCAL_URI = "mongodb://localhost:27017/lms";
 
 // Try multiple connection strategies
@@ -206,20 +207,20 @@ async function connectToMongoDB() {
 
   console.log('🔄 Attempting to connect to MongoDB...');
   
-  // First try: Atlas with reduced timeout
+  // First try: Primary MongoDB URI (Atlas or other)
   try {
-    console.log('📡 Trying MongoDB Atlas connection...');
-    await mongoose.connect(MONGODB_ATLAS_URI, {
+    console.log('📡 Trying MongoDB connection...');
+    await mongoose.connect(MONGODB_URI, {
       ...connectionOptions,
-      serverSelectionTimeoutMS: 8000 // Give Atlas a bit more time
+      serverSelectionTimeoutMS: 10000 // Give primary connection more time
     });
-    console.log('✅ Successfully connected to MongoDB Atlas!');
+    console.log('✅ Successfully connected to MongoDB!');
     return;
-  } catch (atlasError) {
-    console.log('❌ Atlas connection failed:', atlasError.message);
+  } catch (primaryError) {
+    console.log('❌ Primary MongoDB connection failed:', primaryError.message);
     console.log('🔄 Trying local MongoDB connection...');
     
-    // Second try: Local MongoDB
+    // Second try: Local MongoDB (fallback for development)
     try {
       await mongoose.connect(MONGODB_LOCAL_URI, {
         ...connectionOptions,
@@ -1721,6 +1722,230 @@ app.get('/api/instructor-courses', verifyToken, verifyInstructor, async (req, re
   } catch (error) {
     console.error('Error fetching instructor courses:', error);
     res.status(500).json({ error: 'Failed to fetch courses' });
+  }
+});
+
+// Get detailed course information for instructor (with enrollments, students, reviews)
+app.get('/api/instructor/courses/:courseId', verifyToken, verifyInstructor, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    // Find the course and verify ownership
+    const course = await Course.findOne({ 
+      _id: courseId, 
+      instructor: req.user.id 
+    }).populate('instructor', 'fullName email');
+
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found or access denied' });
+    }
+
+    // Get enrollments with student details
+    const enrollments = await Enrollment.find({ courseId: courseId })
+      .populate('studentId', 'fullName email username')
+      .sort({ enrolledAt: -1 });
+
+    // Get course reviews
+    const reviews = await Review.find({ courseId: courseId })
+      .populate('studentId', 'fullName username')
+      .sort({ createdAt: -1 });
+
+    // Calculate statistics
+    const totalStudents = enrollments.length;
+    const completedStudents = enrollments.filter(e => e.progress === 100).length;
+    const completionRate = totalStudents > 0 ? ((completedStudents / totalStudents) * 100).toFixed(1) : 0;
+    
+    // Calculate average rating from reviews
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    const averageRating = reviews.length > 0 ? (totalRating / reviews.length).toFixed(1) : 0;
+
+    // Calculate total revenue
+    const totalRevenue = totalStudents * (course.price || 0);
+
+    // Format enrollment data with progress information
+    const studentsData = enrollments.map(enrollment => ({
+      _id: enrollment.studentId._id,
+      fullName: enrollment.studentId.fullName || enrollment.studentId.username,
+      email: enrollment.studentId.email,
+      username: enrollment.studentId.username,
+      enrolledAt: enrollment.enrolledAt,
+      progress: enrollment.progress || 0,
+      lastActivity: enrollment.lastActivity || enrollment.enrolledAt,
+      completedLessons: enrollment.completedLessons || [],
+      examScores: enrollment.examScores || []
+    }));
+
+    // Format review data
+    const reviewsData = reviews.map(review => ({
+      _id: review._id,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt,
+      student: {
+        _id: review.studentId._id,
+        fullName: review.studentId.fullName || review.studentId.username,
+        username: review.studentId.username
+      }
+    }));
+
+    // Enhanced course data
+    const courseData = {
+      ...course.toObject(),
+      enrollments: studentsData,
+      reviews: reviewsData,
+      stats: {
+        totalStudents,
+        completedStudents,
+        completionRate: parseFloat(completionRate),
+        averageRating: parseFloat(averageRating),
+        totalReviews: reviews.length,
+        totalRevenue
+      }
+    };
+
+    res.json(courseData);
+  } catch (error) {
+    console.error('Error fetching instructor course details:', error);
+    res.status(500).json({ error: 'Failed to fetch course details' });
+  }
+});
+
+// Get students for a specific course (instructor only)
+app.get('/api/courses/:courseId/students', verifyToken, verifyInstructor, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    // Verify course ownership
+    const course = await Course.findOne({ 
+      _id: courseId, 
+      instructor: req.user.id 
+    });
+
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found or access denied' });
+    }
+
+    // Get enrollments with student details
+    const enrollments = await Enrollment.find({ courseId: courseId })
+      .populate('studentId', 'fullName email username')
+      .sort({ enrolledAt: -1 });
+
+    const studentsData = enrollments.map(enrollment => ({
+      _id: enrollment.studentId._id,
+      fullName: enrollment.studentId.fullName || enrollment.studentId.username,
+      email: enrollment.studentId.email,
+      username: enrollment.studentId.username,
+      enrolledAt: enrollment.enrolledAt,
+      progress: enrollment.progress || 0,
+      lastActivity: enrollment.lastActivity || enrollment.enrolledAt,
+      completedLessons: enrollment.completedLessons || [],
+      examScores: enrollment.examScores || []
+    }));
+
+    res.json(studentsData);
+  } catch (error) {
+    console.error('Error fetching course students:', error);
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+});
+
+// Get reviews for a specific course (instructor only)
+app.get('/api/courses/:courseId/reviews', verifyToken, verifyInstructor, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    // Verify course ownership
+    const course = await Course.findOne({ 
+      _id: courseId, 
+      instructor: req.user.id 
+    });
+
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found or access denied' });
+    }
+
+    // Get course reviews
+    const reviews = await Review.find({ courseId: courseId })
+      .populate('studentId', 'fullName username')
+      .sort({ createdAt: -1 });
+
+    const reviewsData = reviews.map(review => ({
+      _id: review._id,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt,
+      student: {
+        _id: review.studentId._id,
+        fullName: review.studentId.fullName || review.studentId.username,
+        username: review.studentId.username
+      }
+    }));
+
+    res.json(reviewsData);
+  } catch (error) {
+    console.error('Error fetching course reviews:', error);
+    res.status(500).json({ error: 'Failed to fetch reviews' });
+  }
+});
+
+// Get activity for a specific course (instructor only)
+app.get('/api/courses/:courseId/activity', verifyToken, verifyInstructor, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    
+    // Verify course ownership
+    const course = await Course.findOne({ 
+      _id: courseId, 
+      instructor: req.user.id 
+    });
+
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found or access denied' });
+    }
+
+    // Get recent enrollments
+    const recentEnrollments = await Enrollment.find({ courseId: courseId })
+      .populate('studentId', 'fullName username')
+      .sort({ enrolledAt: -1 })
+      .limit(10);
+
+    // Get recent reviews
+    const recentReviews = await Review.find({ courseId: courseId })
+      .populate('studentId', 'fullName username')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // Create activity feed
+    const activities = [];
+
+    // Add enrollment activities
+    recentEnrollments.forEach(enrollment => {
+      activities.push({
+        type: 'enrollment',
+        action: `${enrollment.studentId.fullName || enrollment.studentId.username} enrolled in the course`,
+        timestamp: enrollment.enrolledAt,
+        student: enrollment.studentId
+      });
+    });
+
+    // Add review activities
+    recentReviews.forEach(review => {
+      activities.push({
+        type: 'review',
+        action: `${review.studentId.fullName || review.studentId.username} left a ${review.rating}-star review`,
+        timestamp: review.createdAt,
+        student: review.studentId,
+        rating: review.rating
+      });
+    });
+
+    // Sort activities by timestamp (most recent first)
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.json(activities.slice(0, 10)); // Return latest 10 activities
+  } catch (error) {
+    console.error('Error fetching course activity:', error);
+    res.status(500).json({ error: 'Failed to fetch activity' });
   }
 });
 
@@ -5463,6 +5688,23 @@ app.get('/api/health', (req, res) => {
     server: 'running',
     timestamp: new Date().toISOString()
   });
+});
+
+// Root route - serve index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Fallback route for client-side routing (optional)
+app.get('*', (req, res) => {
+  // First try to serve the requested file
+  const filePath = path.join(__dirname, 'public', req.path);
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    res.sendFile(filePath);
+  } else {
+    // If file doesn't exist, return 404
+    res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
 });
 
 // Start the server
